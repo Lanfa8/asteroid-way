@@ -32,6 +32,12 @@ SETA_ESQUERDA EQU 75
 SETA_DIREITA  EQU 77
 BOTAO_ENTER   EQU 28
 
+POSICAO_X_NAVE dw 160 ; Posição inicial X da nave
+POSICAO_Y_NAVE dw 100 ; Posição inicial Y da nave
+
+POSICAO_X_NAVE_ANTERIOR dw 0
+POSICAO_Y_NAVE_ANTERIOR dw 0
+
 NAVE db 0FH,0FH,0FH,0FH,0FH,0CH,0CH,0CH,0,0,0FH,0FH,0FH,0FH,0FH,0,0,0,0,0,0,0FH,0FH,0FH,0,0,0,0,0,0,0,0CH,0FH,0FH,0FH,0FH,0FH,0FH,0,0,0,0,0CH,0FH,0EH,0EH,0FH,0FH,0FH,0FH,0,0,0CH,0FH,0EH,0EH,0FH,0FH,0FH,0FH,0,0CH,0FH,0FH,0FH,0FH,0FH,0FH,0,0,0,0FH,0FH,0FH,0,0,0,0,0,0,0FH,0FH,0FH,0FH,0FH,0,0,0,0,0,0FH,0FH,0FH,0FH,0FH,0CH,0CH,0CH,0,0
 
 METEORO db  0,0,0,0,7,7,0,0,0,0,0,0,0,0,7,7,0,0,0,0,0,0,0,0,7,7,0,0,0,0,0,0,0,0,7,7,0,0,0,0,7,7,7,7,8,8,7,7,7,7,7,7,7,7,8,8,7,7,7,7,0,0,0,0,7,7,0,0,0,0,0,0,0,0,7,7,0,0,0,0,0,0,0,0,7,7,0,0,0,0,0,0,0,0,7,7,0,0,0,0
@@ -47,8 +53,8 @@ TEMPO_DECORRIDO db 0
 
 
 ; 500.000 ms -> 5 segundos
-TEMPO_CX dw 7H
-TEMPO_DX dw 0A120H
+TEMPO_CX dw 0H
+TEMPO_DX dw 010H
       
 .code
 
@@ -332,23 +338,73 @@ endp
 
 INICIAR_JOGO proc
     push AX
+    call MODO_VIDEO
+
     
     mov AX, 30000
     
     LOOP_MAIN:
-        
-        mov SI, offset NAVE    
-        call DESENHA_ELEMENTO_10x10
-        call PAUSA_CICLO
-        
-        add AX, 3520
-        cmp NRO_VIDA, -1
-        jne LOOP_MAIN
-    
+
+        call LE_ENTRADA ; Verifica e processa a entrada do teclado
+        call LIMPA_AREA_NAVE ; Limpa a área onde a nave estava
+        ; Calcula a posição inicial da nave em pixels
+        ; Cada linha tem 320 pixels, então multiplique a coordenada Y por 320 e some com a coordenada X
+        mov AX, POSICAO_Y_NAVE
+        mov CX, 320
+        mul CX
+        add AX, POSICAO_X_NAVE
+        mov DI, AX          ; Armazena a posição calculada em DI
+
+        mov SI, offset NAVE
+
+        ; Agora, DI tem a posi??o correta para desenhar a nave
+        call DESENHA_ELEMENTO_10x10 ; Desenha a nave na posi??o atualizada
+        call PAUSA_CICLO      ; Pausa o ciclo para controlar a velocidade do jogo
+
+        jmp LOOP_MAIN         ; Repete o loop
     FIM_JOGO:
-        pop AX
+    	pop AX
     ret
 endp
+
+LE_ENTRADA proc
+    mov AX, POSICAO_X_NAVE
+    mov POSICAO_X_NAVE_ANTERIOR, AX
+    mov AX, POSICAO_Y_NAVE
+    mov POSICAO_Y_NAVE_ANTERIOR, AX
+    push AX
+    push BX
+    push CX
+    push DX
+
+    mov AH, 1 ; Verifica se há uma tecla pressionada
+    int 16h
+    jz FIM_LE_ENTRADA ; Se nenhuma tecla foi pressionada, pula a atualização
+
+    mov AH, 0 ; Pega o scan code da tecla pressionada
+    int 16h
+
+    cmp AH, 11h ; Tecla W (cima)
+    je MOVE_CIMA
+    cmp AH, 1Fh ; Tecla S (baixo)
+    je MOVE_BAIXO
+
+    jmp FIM_LE_ENTRADA
+
+MOVE_CIMA:
+    dec POSICAO_Y_NAVE
+    jmp FIM_LE_ENTRADA
+
+MOVE_BAIXO:
+    inc POSICAO_Y_NAVE
+
+FIM_LE_ENTRADA:
+    pop DX
+    pop CX
+    pop BX
+    pop AX
+    ret
+LE_ENTRADA endp
 
 LIMPAR_TELA proc
     push AX
@@ -373,6 +429,40 @@ LIMPAR_TELA proc
     pop AX
     ret
 endp
+
+LIMPA_AREA_NAVE proc
+    push AX
+    push BX
+    push CX
+    push DX
+    push DI
+
+    ; Calcula a posição inicial da área da nave em pixels
+    mov AX, POSICAO_Y_NAVE_ANTERIOR
+    mov CX, 320
+    mul CX
+    add AX, POSICAO_X_NAVE_ANTERIOR
+    mov DI, AX
+
+    ; Limpa a área da nave (10x10 pixels, por exemplo)
+    ; Supondo que o fundo é preto (cor 0)
+    mov CX, 10 ; Altura da nave
+    LIMPA_LINHA:
+        push CX
+        mov CX, 10 ; Largura da nave
+        xor AX, AX ; Cor preta
+        REP STOSB  ; Preenche a linha com preto
+        pop CX
+        add DI, 310 ; Move para a próxima linha
+        loop LIMPA_LINHA
+
+    pop DI
+    pop DX
+    pop CX
+    pop BX
+    pop AX
+    ret
+LIMPA_AREA_NAVE endp
 
 ACAO_MENU proc
     push AX
