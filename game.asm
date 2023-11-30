@@ -47,12 +47,12 @@ VIDA db 0,0,0,0,4,4,0,0,0,0,0,0,0,0,4,4,0,0,0,0,0,0,0,0,4,4,0,0,0,0,0,0,0,0,4,4,
 ESCUDO db   0,0,0,0,2,2,0,0,0,0,0,0,0,0,2,2,0,0,0,0,0,0,0,0,2,2,0,0,0,0,0,0,0,0,2,2,0,0,0,0,2,2,2,2,0EH,0EH,2,2,2,2,2,2,2,2,0EH,0EH,2,2,2,2,0,0,0,0,2,2,0,0,0,0,0,0,0,0,2,2,0,0,0,0,0,0,0,0,2,2,0,0,0,0,0,0,0,0,2,2,0,0,0,0
 
 ;controladores jogo
-NRO_VIDA db 0
+NRO_VIDAS db 8
 NIVEL db 1
 TEMPO_DECORRIDO db 0
 
 
-; 500.000 ms -> 5 segundos
+; 16 ms
 TEMPO_CX dw 0H
 TEMPO_DX dw 010H
       
@@ -290,8 +290,7 @@ DESENHA_ELEMENTO_10x10 proc
     push DX
     
     mov DI, AX ;coordenada
-    mov AX, 0A000H
-    mov ES, AX
+
     mov BX, 10
     LOOP_COLUNAS:
         mov CX, 10
@@ -316,9 +315,10 @@ endp
 ; AX = coordenda inicial
 ; BX = cor
 ; DX = quantidade pixels
-DESENHA_LINHA proc
+DESENHA_PIXELS proc
     push CX
     push AX
+    push DI
 
     mov DI, AX
     mov CX, DX
@@ -326,23 +326,96 @@ DESENHA_LINHA proc
     mov AX, BX
     rep stosb
     
+    pop DI
     pop AX
     pop CX
     ret
 endp
 
 DESENHA_INTERFACE proc
+    push AX
+    push BX
+    push DX
+    push CX
     
+    ;barra amarela
+    mov AX, 57600
+    mov BX, 0EH
+    mov DX, 6400 ;20linhas
+    call DESENHA_PIXELS
+    
+    ;quadrado vermelho
+    mov CX, 10
+    mov BX, 4
+    mov AX, 59355
+    mov DX, 10
+    
+    LOOP_QUADRADO:
+        call DESENHA_PIXELS
+        add AX, 320 ;pula 1 linha
+        loop LOOP_QUADRADO
+        
+    call ATUALIZA_BARRA_VIDA
+
+    pop CX
+    pop DX
+    pop BX
+    pop AX
+    ret
+endp
+
+ATUALIZA_BARRA_VIDA proc
+    push AX
+    push BX
+    push DX
+    push CX
+
+    mov AX, 10
+    mul NRO_VIDAS
+    mov DX, AX
+    
+    mov AX, 59227
+    mov BX, 0AH
+    mov CX, 10
+    LOOP_LINHAS_VIDA:
+        call DESENHA_PIXELS
+        add AX, 320
+        loop LOOP_LINHAS_VIDA
+        
+    ;diferenca do maximo de vidas
+    mov AX, 59227
+    add AX, DX
+    
+    push AX
+    
+    mov AX, 100
+    sub AX, DX
+    mov DX, AX
+    
+    pop AX
+    
+    mov BX, 0 ;preto
+    mov CX, 10
+    LOOP_LINHAS_SEM_VIDA:
+        call DESENHA_PIXELS
+        add AX, 320
+        loop LOOP_LINHAS_SEM_VIDA
+    
+    pop CX
+    pop DX
+    pop BX
+    pop AX
     ret
 endp
 
 INICIAR_JOGO proc
     push AX
     call MODO_VIDEO
+    call DESENHA_INTERFACE
 
-    
-    mov AX, 30000
-    
+    mov AX, 0A000H
+    mov ES, AX
+      
     LOOP_MAIN:
 
         call LE_ENTRADA ; Verifica e processa a entrada do teclado
@@ -363,7 +436,7 @@ INICIAR_JOGO proc
 
         jmp LOOP_MAIN         ; Repete o loop
     FIM_JOGO:
-    	pop AX
+        pop AX
     ret
 endp
 
@@ -399,12 +472,13 @@ MOVE_BAIXO:
     inc POSICAO_Y_NAVE
 
 FIM_LE_ENTRADA:
-    pop DX
+pop DX
     pop CX
     pop BX
     pop AX
     ret
 LE_ENTRADA endp
+
 
 LIMPAR_TELA proc
     push AX
