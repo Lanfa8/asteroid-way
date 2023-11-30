@@ -4,26 +4,25 @@
 
 .data
 
-LOGO  db "   _____    _________________________________________ ________  .___________   "
-      db "  /  _  \  /   _____/\__    ___/\_   _____/\______   \\_____  \ |   \______ \  "
-      db " /  /_\  \ \_____  \   |    |    |    __)_  |       _/ /   |   \|   ||    |  \ "
-      db "/    |    \/        \  |    |    |        \ |    |   \/    |    \   ||        \"
-      db "\____|__  /_______  /  |____|   /_______  / |____|_  /\_______  /___/_______  /"
-      db "        \/        \/                    \/         \/         \/            \/ "
-      db "                          __      __  _____ _____.___.                         "
-      db "                         /  \    /  \/  _  \\__  |   |                         "
-      db "                         \   \/\/   /  /_\  \/   |   |                         "
-      db "                          \        /    |    \____   |                         "
-      db "                           \__/\  /\____|__  / ______|                         "
-      db "                                \/         \/\/                                ",'$'
+LOGO    db "            _                 _     _   "
+        db "           | |               (_)   | |  "
+        db "   __ _ ___| |_ ___ _ __ ___  _  __| |  "
+        db "  / _` / __| __/ _ \ '__/ _ \| |/ _` |  "
+        db " | (_| \__ \ ||  __/ | | (_) | | (_| |  "
+        db "  \__,_|___/\__\___|_|  \___/|_|\__,_|  "
+        db "           \ \ /\ / / _` | | | |        "
+        db "            \ V  V / (_| | |_| |        "
+        db "             \_/\_/ \__,_|\__, |        "
+        db "                           __/ |        "
+        db "                          |___/         ", '$'
       
-TEXTO_JOGAR db "                                     JOGAR                                    ", "$"
+TEXTO_JOGAR db "                  JOGAR                 ", "$"
 
-TEXTO_SAIR db "                                      SAIR                                    ", "$"
+TEXTO_SAIR db "                  SAIR                  ", "$"
 
-TEXTO_JOGAR_SELECIONADO db "                                   [ JOGAR ]                                  ", "$"
+TEXTO_JOGAR_SELECIONADO db "                [ JOGAR ]               ", "$"
 
-TEXTO_SAIR_SELECIONADO db "                                    [ SAIR ]                                  ", "$"
+TEXTO_SAIR_SELECIONADO db "                [ SAIR ]                ", "$"
 
 OPCAO_MENU_SELECIONADA db 0 ;0 = JOGAR, 1 = SAIR
 
@@ -33,11 +32,16 @@ SETA_ESQUERDA EQU 75
 SETA_DIREITA  EQU 77
 BOTAO_ENTER   EQU 28
 
-
 NAVE db 0FH,0FH,0FH,0FH,0FH,0CH,0CH,0CH,0,0,0FH,0FH,0FH,0FH,0FH,0,0,0,0,0,0,0FH,0FH,0FH,0,0,0,0,0,0,0,0CH,0FH,0FH,0FH,0FH,0FH,0FH,0,0,0,0,0CH,0FH,0EH,0EH,0FH,0FH,0FH,0FH,0,0,0CH,0FH,0EH,0EH,0FH,0FH,0FH,0FH,0,0CH,0FH,0FH,0FH,0FH,0FH,0FH,0,0,0,0FH,0FH,0FH,0,0,0,0,0,0,0FH,0FH,0FH,0FH,0FH,0,0,0,0,0,0FH,0FH,0FH,0FH,0FH,0CH,0CH,0CH,0,0
 
+METEORO db  0,0,0,0,7,7,0,0,0,0,0,0,0,0,7,7,0,0,0,0,0,0,0,0,7,7,0,0,0,0,0,0,0,0,7,7,0,0,0,0,7,7,7,7,8,8,7,7,7,7,7,7,7,7,8,8,7,7,7,7,0,0,0,0,7,7,0,0,0,0,0,0,0,0,7,7,0,0,0,0,0,0,0,0,7,7,0,0,0,0,0,0,0,0,7,7,0,0,0,0
+
+VIDA db 0,0,0,0,4,4,0,0,0,0,0,0,0,0,4,4,0,0,0,0,0,0,0,0,4,4,0,0,0,0,0,0,0,0,4,4,0,0,0,0,4,4,4,4,0CH,0CH,4,4,4,4,4,4,4,4,0CH,0CH,4,4,4,4,0,0,0,0,4,4,0,0,0,0,0,0,0,0,4,4,0,0,0,0,0,0,0,0,4,4,0,0,0,0,0,0,0,0,4,4,0,0,0,0
+
+ESCUDO db   0,0,0,0,2,2,0,0,0,0,0,0,0,0,2,2,0,0,0,0,0,0,0,0,2,2,0,0,0,0,0,0,0,0,2,2,0,0,0,0,2,2,2,2,0EH,0EH,2,2,2,2,2,2,2,2,0EH,0EH,2,2,2,2,0,0,0,0,2,2,0,0,0,0,0,0,0,0,2,2,0,0,0,0,0,0,0,0,2,2,0,0,0,0,0,0,0,0,2,2,0,0,0,0
+
 ;controladores jogo
-VIDA db 0
+NRO_VIDA db 0
 NIVEL db 1
 TEMPO_DECORRIDO db 0
 
@@ -98,12 +102,12 @@ MOSTRA_OPCOES_BASE proc ; Mostra as opcoes do menu limpas
     push BX
     push DX
 
-    mov DH, 22
+    mov DH, 20
     mov BL, 15 ;branco
     mov SI, offset TEXTO_JOGAR
     call ESCREVE_STRING
     
-    mov DH, 24
+    mov DH, 22
     mov BL, 15 
     mov SI, offset TEXTO_SAIR
     call ESCREVE_STRING
@@ -129,14 +133,14 @@ ATUALIZA_MENU proc
     cmp OPCAO_MENU_SELECIONADA, 0
     je OPCAO_0
     
-    mov DH, 24
+    mov DH, 22
     mov BL, 15 
     mov SI, offset TEXTO_SAIR_SELECIONADO
     call ESCREVE_STRING
     jmp ATUALIZA_MENU_FIM
     
     OPCAO_0:
-        mov DH, 22
+        mov DH, 20
         mov BL, 15 ;branco
         mov SI, offset TEXTO_JOGAR_SELECIONADO
         call ESCREVE_STRING
@@ -163,10 +167,21 @@ MOSTRA_INTRO proc ; Mostra tela inicial do jogo
     mov SI, offset LOGO
     call ESCREVE_STRING
     
-    mov AX, 30000
+    mov AX, 40076
     mov SI, offset NAVE
     call DESENHA_ELEMENTO_10x10
-    ; call MOSTRA_OPCOES_BASE
+    
+    mov AX, 40122
+    mov SI, offset METEORO
+    call DESENHA_ELEMENTO_10x10
+    
+    mov AX, 40168
+    mov SI, offset VIDA
+    call DESENHA_ELEMENTO_10x10
+    
+    mov AX, 40214
+    mov SI, offset ESCUDO
+    call DESENHA_ELEMENTO_10x10
 
     pop DX
     pop BX
@@ -327,7 +342,7 @@ INICIAR_JOGO proc
         call PAUSA_CICLO
         
         add AX, 3520
-        cmp VIDA, -1
+        cmp NRO_VIDA, -1
         jne LOOP_MAIN
     
     FIM_JOGO:
@@ -372,7 +387,7 @@ ACAO_MENU proc
     mov AH, 7H
     int 21H
 
-    ;call MOSTRAR_TELA_INICIAL
+    call MOSTRAR_TELA_INICIAL
 
     FIM_ACAO_MENU:
 
@@ -396,17 +411,21 @@ PAUSA_CICLO proc
     ret
 endp
 
+MOSTRAR_TELA_INICIAL proc
+    call MODO_VIDEO
+    call MOSTRA_INTRO
+    call ATUALIZA_MENU
+    call SELECIONA_OPCAO_MENU
+    call ACAO_MENU
+    ret
+endp
+
+
 INICIO:
     mov AX, @data
     mov DS, AX
     
-    call MODO_VIDEO
-
-   
-    call MOSTRA_INTRO
-    ;call ATUALIZA_MENU
-    ;call SELECIONA_OPCAO_MENU
-    ;call ACAO_MENU
+    call MOSTRAR_TELA_INICIAL
 
     mov AH, 4CH
     int 21H
