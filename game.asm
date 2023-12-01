@@ -32,8 +32,8 @@ SETA_ESQUERDA EQU 75
 SETA_DIREITA  EQU 77
 BOTAO_ENTER   EQU 28
 
-POSICAO_X_NAVE dw 160 ; Posição inicial X da nave
-POSICAO_Y_NAVE dw 100 ; Posição inicial Y da nave
+POSICAO_X_NAVE dw 160 ; Posi??o inicial X da nave
+POSICAO_Y_NAVE dw 100 ; Posi??o inicial Y da nave
 
 POSICAO_X_NAVE_ANTERIOR dw 0
 POSICAO_Y_NAVE_ANTERIOR dw 0
@@ -47,14 +47,15 @@ VIDA db 0,0,0,0,4,4,0,0,0,0,0,0,0,0,4,4,0,0,0,0,0,0,0,0,4,4,0,0,0,0,0,0,0,0,4,4,
 ESCUDO db   0,0,0,0,2,2,0,0,0,0,0,0,0,0,2,2,0,0,0,0,0,0,0,0,2,2,0,0,0,0,0,0,0,0,2,2,0,0,0,0,2,2,2,2,0EH,0EH,2,2,2,2,2,2,2,2,0EH,0EH,2,2,2,2,0,0,0,0,2,2,0,0,0,0,0,0,0,0,2,2,0,0,0,0,0,0,0,0,2,2,0,0,0,0,0,0,0,0,2,2,0,0,0,0
 
 ;controladores jogo
-NRO_VIDAS db 8
+NRO_VIDAS db 5
+RESTANTE_TEMPO dw 30  
 NIVEL db 1
-TEMPO_DECORRIDO db 0
+TEMPO_DECORRIDO dw 0
 
 
-; 16 ms
+; 50.000 ms
 TEMPO_CX dw 0H
-TEMPO_DX dw 010H
+TEMPO_DX dw 0C350H
       
 .code
 
@@ -356,8 +357,72 @@ DESENHA_INTERFACE proc
         loop LOOP_QUADRADO
         
     call ATUALIZA_BARRA_VIDA
-
+    call ATUALIZA_BARRA_TEMPO
+    
     pop CX
+    pop DX
+    pop BX
+    pop AX
+    ret
+endp
+
+
+
+; DX = quantidade para atualizar
+; BX = cor da barra
+; AX = pixels coordenada inicial
+ATUALIZAR_BARRA_STATUS proc
+    push CX
+    push DX    
+    push BX
+    push AX
+    
+    mov CX, 10
+    LOOP_LINHAS_STATUS:
+        call DESENHA_PIXELS
+        add AX, 320
+        loop LOOP_LINHAS_STATUS
+        
+    ;restaura AX com a coordenada inicial que está na pilha
+    pop AX
+    push AX
+    
+    ;aponta para a coordena de inicio onde deve completar o restante com preto 
+    add AX, DX
+    
+    ;calcula quanto precisa para completar
+    push AX
+
+    mov AX, 100
+    sub AX, DX
+    mov DX, AX
+    
+    pop AX
+    
+    mov BX, 0 ;preto
+    mov CX, 10
+    LOOP_LINHAS_STATUS_VAZIO:
+        call DESENHA_PIXELS
+        add AX, 320
+        loop LOOP_LINHAS_STATUS_VAZIO
+    
+    pop AX
+    pop BX
+    pop DX
+    pop CX
+    ret
+endp
+
+ATUALIZA_BARRA_TEMPO proc
+    push AX
+    push BX
+    push DX
+
+    mov AX, 59227
+    mov BX, 0BH
+    mov DX, RESTANTE_TEMPO
+    call ATUALIZAR_BARRA_STATUS         
+    
     pop DX
     pop BX
     pop AX
@@ -368,40 +433,15 @@ ATUALIZA_BARRA_VIDA proc
     push AX
     push BX
     push DX
-    push CX
 
     mov AX, 10
     mul NRO_VIDAS
     mov DX, AX
     
-    mov AX, 59227
+    mov AX, 59392
     mov BX, 0AH
-    mov CX, 10
-    LOOP_LINHAS_VIDA:
-        call DESENHA_PIXELS
-        add AX, 320
-        loop LOOP_LINHAS_VIDA
-        
-    ;diferenca do maximo de vidas
-    mov AX, 59227
-    add AX, DX
+    call ATUALIZAR_BARRA_STATUS    
     
-    push AX
-    
-    mov AX, 100
-    sub AX, DX
-    mov DX, AX
-    
-    pop AX
-    
-    mov BX, 0 ;preto
-    mov CX, 10
-    LOOP_LINHAS_SEM_VIDA:
-        call DESENHA_PIXELS
-        add AX, 320
-        loop LOOP_LINHAS_SEM_VIDA
-    
-    pop CX
     pop DX
     pop BX
     pop AX
@@ -410,32 +450,47 @@ endp
 
 INICIAR_JOGO proc
     push AX
+    push BX
     call MODO_VIDEO
     call DESENHA_INTERFACE
 
     mov AX, 0A000H
     mov ES, AX
-      
+    
+    xor BX, BX  
     LOOP_MAIN:
 
+        call ATUALIZA_BARRA_VIDA
+        call ATUALIZA_BARRA_TEMPO
         call LE_ENTRADA ; Verifica e processa a entrada do teclado
-        call LIMPA_AREA_NAVE ; Limpa a área onde a nave estava
-        ; Calcula a posição inicial da nave em pixels
-        ; Cada linha tem 320 pixels, então multiplique a coordenada Y por 320 e some com a coordenada X
+        call LIMPA_AREA_NAVE ; Limpa a ?rea onde a nave estava
+        ; Calcula a posi??o inicial da nave em pixels
+        ; Cada linha tem 320 pixels, ent?o multiplique a coordenada Y por 320 e some com a coordenada X
         mov AX, POSICAO_Y_NAVE
         mov CX, 320
         mul CX
         add AX, POSICAO_X_NAVE
-        mov DI, AX          ; Armazena a posição calculada em DI
+        mov DI, AX          ; Armazena a posi??o calculada em DI
 
         mov SI, offset NAVE
 
         ; Agora, DI tem a posi??o correta para desenhar a nave
         call DESENHA_ELEMENTO_10x10 ; Desenha a nave na posi??o atualizada
         call PAUSA_CICLO      ; Pausa o ciclo para controlar a velocidade do jogo
-
+        
+        inc BX
+        cmp BX, 20 ;20 frames por segundo
+        je ATUALIZA_TEMPO_RESTANTE
+        
         jmp LOOP_MAIN         ; Repete o loop
+    
+    ATUALIZA_TEMPO_RESTANTE:
+        dec RESTANTE_TEMPO
+        xor BX, BX
+        jmp LOOP_MAIN
+        
     FIM_JOGO:
+        pop BX
         pop AX
     ret
 endp
@@ -450,9 +505,9 @@ LE_ENTRADA proc
     push CX
     push DX
 
-    mov AH, 1 ; Verifica se há uma tecla pressionada
+    mov AH, 1 ; Verifica se h? uma tecla pressionada
     int 16h
-    jz FIM_LE_ENTRADA ; Se nenhuma tecla foi pressionada, pula a atualização
+    jz FIM_LE_ENTRADA ; Se nenhuma tecla foi pressionada, pula a atualiza??o
 
     mov AH, 0 ; Pega o scan code da tecla pressionada
     int 16h
@@ -464,19 +519,19 @@ LE_ENTRADA proc
 
     jmp FIM_LE_ENTRADA
 
-MOVE_CIMA:
-    dec POSICAO_Y_NAVE
-    jmp FIM_LE_ENTRADA
+    MOVE_CIMA:
+        dec POSICAO_Y_NAVE
+        jmp FIM_LE_ENTRADA
 
-MOVE_BAIXO:
-    inc POSICAO_Y_NAVE
+    MOVE_BAIXO:
+        inc POSICAO_Y_NAVE
 
-FIM_LE_ENTRADA:
-pop DX
-    pop CX
-    pop BX
-    pop AX
-    ret
+    FIM_LE_ENTRADA:
+    pop DX
+        pop CX
+        pop BX
+        pop AX
+        ret
 LE_ENTRADA endp
 
 
@@ -511,15 +566,15 @@ LIMPA_AREA_NAVE proc
     push DX
     push DI
 
-    ; Calcula a posição inicial da área da nave em pixels
+    ; Calcula a posi??o inicial da ?rea da nave em pixels
     mov AX, POSICAO_Y_NAVE_ANTERIOR
     mov CX, 320
     mul CX
     add AX, POSICAO_X_NAVE_ANTERIOR
     mov DI, AX
 
-    ; Limpa a área da nave (10x10 pixels, por exemplo)
-    ; Supondo que o fundo é preto (cor 0)
+    ; Limpa a ?rea da nave (10x10 pixels, por exemplo)
+    ; Supondo que o fundo ? preto (cor 0)
     mov CX, 10 ; Altura da nave
     LIMPA_LINHA:
         push CX
@@ -527,7 +582,7 @@ LIMPA_AREA_NAVE proc
         xor AX, AX ; Cor preta
         REP STOSB  ; Preenche a linha com preto
         pop CX
-        add DI, 310 ; Move para a próxima linha
+        add DI, 310 ; Move para a pr?xima linha
         loop LIMPA_LINHA
 
     pop DI
@@ -590,7 +645,6 @@ INICIO:
     mov DS, AX
     
     call MOSTRAR_TELA_INICIAL
-
 
     mov AH, 4CH
     int 21H
