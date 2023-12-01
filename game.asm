@@ -40,11 +40,11 @@ POSICAO_Y_NAVE_ANTERIOR dw 0
 
 NAVE db 0FH,0FH,0FH,0FH,0FH,0CH,0CH,0CH,0,0,0FH,0FH,0FH,0FH,0FH,0,0,0,0,0,0,0FH,0FH,0FH,0,0,0,0,0,0,0,0CH,0FH,0FH,0FH,0FH,0FH,0FH,0,0,0,0,0CH,0FH,0EH,0EH,0FH,0FH,0FH,0FH,0,0,0CH,0FH,0EH,0EH,0FH,0FH,0FH,0FH,0,0CH,0FH,0FH,0FH,0FH,0FH,0FH,0,0,0,0FH,0FH,0FH,0,0,0,0,0,0,0FH,0FH,0FH,0FH,0FH,0,0,0,0,0,0FH,0FH,0FH,0FH,0FH,0CH,0CH,0CH,0,0
 
-METEORO db  0,0,0,0,7,7,0,0,0,0,0,0,0,0,7,7,0,0,0,0,0,0,0,0,7,7,0,0,0,0,0,0,0,0,7,7,0,0,0,0,7,7,7,7,8,8,7,7,7,7,7,7,7,7,8,8,7,7,7,7,0,0,0,0,7,7,0,0,0,0,0,0,0,0,7,7,0,0,0,0,0,0,0,0,7,7,0,0,0,0,0,0,0,0,7,7,0,0,0,0
+METEORO db 0,0,0,0,7,7,0,0,0,0,0,0,0,0,7,7,0,0,0,0,0,0,0,0,7,7,0,0,0,0,0,0,0,0,7,7,0,0,0,0,7,7,7,7,8,8,7,7,7,7,7,7,7,7,8,8,7,7,7,7,0,0,0,0,7,7,0,0,0,0,0,0,0,0,7,7,0,0,0,0,0,0,0,0,7,7,0,0,0,0,0,0,0,0,7,7,0,0,0,0
 
 VIDA db 0,0,0,0,4,4,0,0,0,0,0,0,0,0,4,4,0,0,0,0,0,0,0,0,4,4,0,0,0,0,0,0,0,0,4,4,0,0,0,0,4,4,4,4,0CH,0CH,4,4,4,4,4,4,4,4,0CH,0CH,4,4,4,4,0,0,0,0,4,4,0,0,0,0,0,0,0,0,4,4,0,0,0,0,0,0,0,0,4,4,0,0,0,0,0,0,0,0,4,4,0,0,0,0
 
-ESCUDO db   0,0,0,0,2,2,0,0,0,0,0,0,0,0,2,2,0,0,0,0,0,0,0,0,2,2,0,0,0,0,0,0,0,0,2,2,0,0,0,0,2,2,2,2,0EH,0EH,2,2,2,2,2,2,2,2,0EH,0EH,2,2,2,2,0,0,0,0,2,2,0,0,0,0,0,0,0,0,2,2,0,0,0,0,0,0,0,0,2,2,0,0,0,0,0,0,0,0,2,2,0,0,0,0
+ESCUDO db 0,0,0,0,2,2,0,0,0,0,0,0,0,0,2,2,0,0,0,0,0,0,0,0,2,2,0,0,0,0,0,0,0,0,2,2,0,0,0,0,2,2,2,2,0EH,0EH,2,2,2,2,2,2,2,2,0EH,0EH,2,2,2,2,0,0,0,0,2,2,0,0,0,0,0,0,0,0,2,2,0,0,0,0,0,0,0,0,2,2,0,0,0,0,0,0,0,0,2,2,0,0,0,0
 
 ;controladores jogo
 NRO_VIDAS db 5
@@ -54,8 +54,13 @@ TEMPO_DECORRIDO dw 0
 
 
 ; 50.000 ms
-TEMPO_CX dw 0H
+TEMPO_CX dw 0
 TEMPO_DX dw 0C350H
+
+SEED dw 1
+
+POSICOES_ASTEROIDES dw 0,0,0,0,0,0,0,0
+TOTAL_ASTEROIDES_SIMULTANEOS dw 8 
       
 .code
 
@@ -68,6 +73,7 @@ CALC_STRING_LENGTH proc
         je STRLEN_FIM
         inc CX
         inc SI
+
         jmp STRLEN_LACO
 
     STRLEN_FIM:
@@ -448,6 +454,49 @@ ATUALIZA_BARRA_VIDA proc
     ret
 endp
 
+GERA_ASTEROIDE proc
+    push AX
+    push DX
+    push SI
+    push CX
+    push BX
+    
+    ;verifica se pode gerar um novo asteroide
+    mov CX, TOTAL_ASTEROIDES_SIMULTANEOS
+    mov SI, offset POSICOES_ASTEROIDES
+    LOOP_VERIFICA_ASTEROIDE:
+        mov AX, [SI]
+        cmp AX, 0 
+        je GERA_ASTEROIDE_EFET
+        add SI, 2 ; word
+        loop LOOP_VERIFICA_ASTEROIDE
+    
+    jmp FIM_GERA_ASTEROIDE
+    
+    GERA_ASTEROIDE_EFET:
+        mov BX, SI ;salva posicao do asteroide
+        mov AX, 6400
+        call RAND_NUMBER
+        
+        mul DX
+        add AX, 300
+        
+        mov SI, offset METEORO
+        call DESENHA_ELEMENTO_10x10
+        
+        mov SI, BX
+        mov [SI], AX ;guarda a coordenada na posiçao do asteroide
+    
+    FIM_GERA_ASTEROIDE:
+        pop BX
+        pop CX
+        pop SI
+        pop DX
+        pop AX
+    ret
+endp
+    
+
 INICIAR_JOGO proc
     push AX
     push BX
@@ -462,6 +511,7 @@ INICIAR_JOGO proc
 
         call ATUALIZA_BARRA_VIDA
         call ATUALIZA_BARRA_TEMPO
+        
         call LE_ENTRADA ; Verifica e processa a entrada do teclado
         call LIMPA_AREA_NAVE ; Limpa a ?rea onde a nave estava
         ; Calcula a posi??o inicial da nave em pixels
@@ -484,9 +534,10 @@ INICIAR_JOGO proc
         
         jmp LOOP_MAIN         ; Repete o loop
     
-    ATUALIZA_TEMPO_RESTANTE:
+    ATUALIZA_TEMPO_RESTANTE:        
         dec RESTANTE_TEMPO
         xor BX, BX
+        call GERA_ASTEROIDE
         jmp LOOP_MAIN
         
     FIM_JOGO:
@@ -629,6 +680,25 @@ PAUSA_CICLO proc
     pop AX
     ret
 endp
+
+
+;retorna um numero aleatorio em DL de 0 a 9
+RAND_NUMBER proc
+    push AX
+    push CX
+    
+    mov AH, 00h  ; interrupts to get system time        
+    int 1AH      ; CX:DX now hold number of clock ticks since midnight      
+
+    mov  ax, dx
+    xor  dx, dx
+    mov  cx, 10    
+    div  cx       ; here dx contains the remainder of the division - from 0 to 9
+
+    pop CX 
+    pop AX  
+    ret
+endp   
 
 MOSTRAR_TELA_INICIAL proc
     call MODO_VIDEO
