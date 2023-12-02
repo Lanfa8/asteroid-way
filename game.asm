@@ -295,6 +295,7 @@ DESENHA_ELEMENTO_10x10 proc
     push DI
     push BX
     push DX
+    push CX
     
     mov DI, AX ;coordenada
 
@@ -310,6 +311,7 @@ DESENHA_ELEMENTO_10x10 proc
         cmp BX, 0
         jne LOOP_COLUNAS
     
+    pop CX
     pop DX
     pop BX
     pop DI
@@ -389,7 +391,7 @@ ATUALIZAR_BARRA_STATUS proc
         add AX, 320
         loop LOOP_LINHAS_STATUS
         
-    ;restaura AX com a coordenada inicial que está na pilha
+    ;restaura AX com a coordenada inicial que est? na pilha
     pop AX
     push AX
     
@@ -475,7 +477,7 @@ GERA_ASTEROIDE proc
     
     GERA_ASTEROIDE_EFET:
         mov BX, SI ;salva posicao do asteroide
-        mov AX, 6400
+        mov AX, 5760 ; 18 linhas X 320 px (18 linhas pois remove o espaço para a interface inferior)
         call RAND_NUMBER
         
         mul DX
@@ -485,7 +487,7 @@ GERA_ASTEROIDE proc
         call DESENHA_ELEMENTO_10x10
         
         mov SI, BX
-        mov [SI], AX ;guarda a coordenada na posiçao do asteroide
+        mov [SI], AX ;guarda a coordenada na posi?ao do asteroide
     
     FIM_GERA_ASTEROIDE:
         pop BX
@@ -495,7 +497,76 @@ GERA_ASTEROIDE proc
         pop AX
     ret
 endp
+
+MOVE_ASTEROIDES proc
+    push CX
+    push SI
+    push AX
+    push BX
+    push DX
     
+    mov CX, TOTAL_ASTEROIDES_SIMULTANEOS
+    mov SI, offset POSICOES_ASTEROIDES
+    LOOP_PERCORRE_ASTEROIDES:
+        mov AX, [SI]
+        cmp AX, 0
+        jne MOVE_ASTEROIDE_UNICO
+        
+        FLAG_COTINUA_LOOP:
+            add SI, 2 ; word
+            loop LOOP_PERCORRE_ASTEROIDES
+
+    jmp FIM_MOVE_ASTEROIDES
+    
+    MOVE_ASTEROIDE_UNICO:
+        add AX, 9 ;aponta para a ultima coluna atual
+        mov BX, 10
+        call LIMPA_COLUNA_PIXELS
+        
+        mov DX, [SI]
+        dec DX
+        mov [SI], DX
+        
+        push SI
+        
+        mov AX, DX
+        mov SI, offset METEORO
+        call DESENHA_ELEMENTO_10x10
+        
+        pop SI
+        
+        jmp FLAG_COTINUA_LOOP
+    
+    FIM_MOVE_ASTEROIDES:
+        pop DX
+        pop BX
+        pop AX
+        pop SI
+        pop CX
+    ret
+endp
+
+;ax = coordenada inicial
+;bx = quantidade pixels
+LIMPA_COLUNA_PIXELS proc
+    push CX
+    push DI
+    push AX
+    
+    mov DI, AX
+    mov CX, BX
+    mov AX, 0
+    
+    LOOP_LIMPA_COLUNA:
+        stosb
+        add DI, 319 ; pula linha, DI já está +1
+        loop LOOP_LIMPA_COLUNA
+    
+    pop AX
+    pop DI
+    pop CX
+    ret
+endp
 
 INICIAR_JOGO proc
     push AX
@@ -526,6 +597,7 @@ INICIAR_JOGO proc
 
         ; Agora, DI tem a posi??o correta para desenhar a nave
         call DESENHA_ELEMENTO_10x10 ; Desenha a nave na posi??o atualizada
+ 
         call PAUSA_CICLO      ; Pausa o ciclo para controlar a velocidade do jogo
         
         inc BX
@@ -534,7 +606,8 @@ INICIAR_JOGO proc
         
         jmp LOOP_MAIN         ; Repete o loop
     
-    ATUALIZA_TEMPO_RESTANTE:        
+    ATUALIZA_TEMPO_RESTANTE:
+        call MOVE_ASTEROIDES
         dec RESTANTE_TEMPO
         xor BX, BX
         call GERA_ASTEROIDE
