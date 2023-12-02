@@ -47,6 +47,8 @@ VIDA db 0,0,0,0,4,4,0,0,0,0,0,0,0,0,4,4,0,0,0,0,0,0,0,0,4,4,0,0,0,0,0,0,0,0,4,4,
 
 ESCUDO db 0,0,0,0,2,2,0,0,0,0,0,0,0,0,2,2,0,0,0,0,0,0,0,0,2,2,0,0,0,0,0,0,0,0,2,2,0,0,0,0,2,2,2,2,0EH,0EH,2,2,2,2,2,2,2,2,0EH,0EH,2,2,2,2,0,0,0,0,2,2,0,0,0,0,0,0,0,0,2,2,0,0,0,0,0,0,0,0,2,2,0,0,0,0,0,0,0,0,2,2,0,0,0,0
 
+QUADRADO_PRETO db 100 dup(0)
+
 ;controladores jogo
 NRO_VIDAS db 5
 RESTANTE_TEMPO dw 30  
@@ -577,6 +579,9 @@ endp
 INICIAR_JOGO proc
     push AX
     push BX
+    push CX
+    push DI
+    push SI
     call MODO_VIDEO
     call DESENHA_INTERFACE
 
@@ -585,6 +590,8 @@ INICIAR_JOGO proc
     
     xor BX, BX  
     LOOP_MAIN:
+        cmp NRO_VIDAS, 0
+        je FIM_JOGO
 
         call ATUALIZA_BARRA_VIDA
         call ATUALIZA_BARRA_TEMPO
@@ -607,31 +614,89 @@ INICIAR_JOGO proc
         call LIMPA_PROJETEIS
         call ATUALIZA_PROJETEIS
         call DESENHA_PROJETEIS
+        call ATUALIZA_COLISOES_ASTEROIDES
             
         call PAUSA_CICLO      ; Pausa o ciclo para controlar a velocidade do jogo
         
         inc BX
         cmp BX, 20 ;20 frames por segundo
-        je ATUALIZA_TEMPO_RESTANTE
         
-        jmp LOOP_MAIN         ; Repete o loop
-    
-    ATUALIZA_TEMPO_RESTANTE:
+        je ATUALIZA_TEMPO_RESTANTE
         call MOVE_ASTEROIDES
+        jmp LOOP_MAIN         ; Repete o loop
+        
+        
+    ATUALIZA_TEMPO_RESTANTE:
         dec RESTANTE_TEMPO
         xor BX, BX
         call GERA_ASTEROIDE
         jmp LOOP_MAIN
         
     FIM_JOGO:
-		pop BX
+        pop SI
+        pop DI
+        pop CX
+        pop BX
         pop AX
+    ret
+endp
+
+ATUALIZA_COLISOES_ASTEROIDES proc
+    push AX
+    push BX
+    push CX
+    push DX
+    push SI
+
+    mov CX, TOTAL_ASTEROIDES_SIMULTANEOS
+    mov SI, offset POSICOES_ASTEROIDES
+    
+    mov AX, [POSICAO_Y_NAVE]
+    mov DX, 320
+    mul DX
+    add AX, [POSICAO_X_NAVE]
+
+    LOOP_PERCORRE_ASTEROIDES_COLISOES:
+        mov BX, [SI]
+        cmp BX, 0
+        je FLAG_COTINUA_LOOP_PERCORRE_ASTEROIDES_COLISOES
+        
+        call VERIFICA_COLISAO_10x10
+        cmp DX, 1
+        jne FLAG_COTINUA_LOOP_PERCORRE_ASTEROIDES_COLISOES
+        
+        
+        push AX
+        push SI
+        
+        mov AX, [SI]
+        mov SI, offset QUADRADO_PRETO
+        call DESENHA_ELEMENTO_10x10
+        
+        pop SI
+        
+        xor AX, AX
+        mov [SI], AX ;limpa asteroide da memoria
+        dec NRO_VIDAS
+        pop AX
+
+        FLAG_COTINUA_LOOP_PERCORRE_ASTEROIDES_COLISOES:
+            add SI, 2 ; word
+            loop LOOP_PERCORRE_ASTEROIDES_COLISOES
+
+    FIM_VERIFICA_COLISOES_ASTEROIDES:
+        pop SI
+        pop DX
+        pop CX
+        pop BX
+        pop AX
+
     ret
 endp
 
 ATUALIZA_PROJETEIS proc
     push AX
-	push BX
+    push BX
     push CX
     push DI
     push DX
@@ -669,7 +734,7 @@ ATUALIZA_PROJETEIS proc
     pop DX
     pop DI
     pop CX
-	pop BX
+    pop BX
     pop AX
     ret
 ATUALIZA_PROJETEIS endp
@@ -743,10 +808,10 @@ LE_ENTRADA proc
     push BX
     push CX
     push DX
-	push DI
-	push SI
+    push DI
+    push SI
 
-	mov AX, POSICAO_X_NAVE
+    mov AX, POSICAO_X_NAVE
     mov POSICAO_X_NAVE_ANTERIOR, AX
     mov AX, POSICAO_Y_NAVE
     mov POSICAO_Y_NAVE_ANTERIOR, AX
@@ -818,8 +883,8 @@ ATIVA_PROJETIL:
     jmp FIM_LE_ENTRADA
     
 FIM_LE_ENTRADA:
-	pop SI
-	pop DI
+    pop SI
+    pop DI
     pop DX
     pop CX
     pop BX
@@ -868,6 +933,77 @@ LIMPA_LINHA proc
     pop AX
     ret
 LIMPA_LINHA endp
+
+
+;ax = coordenada esquerda superior1
+;bx = coordenada esquerda superior2
+;dx = retorna 1 se colidiu
+VERIFICA_COLISAO_10x10 proc
+    push AX
+    push CX
+
+    xor DX, DX
+
+    mov CX, 10
+    LOOP_EXTERNO_VERIFICA_COLISAO_10x10:
+        push CX
+        mov CX, 10
+        LOOP_INTERNO_VERIFICA_COLISAO_10x10:
+            call VERIFICA_COLISAO_PIXEL_COM_10X10
+            cmp DX, 1
+            je COLIDIU_10x10
+
+            inc AX  
+            loop LOOP_INTERNO_VERIFICA_COLISAO_10x10
+        
+        pop CX ; restaura1
+        add AX, 310 ;pula linha (320px - 10px)
+        loop LOOP_EXTERNO_VERIFICA_COLISAO_10x10
+
+    jmp FIM_VERIFICA_COLISAO_10x10
+    COLIDIU_10x10:
+        pop CX ;restaura 1  
+        
+    FIM_VERIFICA_COLISAO_10x10:
+        pop CX
+        pop AX
+        ret
+endp
+
+;bx = coordenada inicial elemento 10x10
+;ax = coordenada pixel
+;dx = retorna 1 se colidiu
+VERIFICA_COLISAO_PIXEL_COM_10X10 proc
+    push CX
+    push BX
+    
+    xor DX, DX
+    mov CX, 10
+    LOOP_EXTERNO_VERIFICA_COLISAO_PIXEL_COM_10X10:
+        push CX
+        mov CX, 10
+        LOOP_INTERNO_VERIFICA_COLISAO_PIXEL_COM_10X10:
+            cmp AX, BX
+            je COLIDIU
+            inc BX
+            loop LOOP_INTERNO_VERIFICA_COLISAO_PIXEL_COM_10X10
+        
+            pop CX ;restaura
+        add BX, 310 ;pula linha (320px - 10px)
+        loop LOOP_EXTERNO_VERIFICA_COLISAO_PIXEL_COM_10X10
+    
+    jmp FIM_VERIFICA_COLISAO_PIXEL_COM_10X10
+
+    COLIDIU:
+        pop CX ;restaura
+        mov DX, 1
+        jmp FIM_VERIFICA_COLISAO_PIXEL_COM_10X10
+
+    FIM_VERIFICA_COLISAO_PIXEL_COM_10X10:
+        pop BX
+        pop CX
+    ret
+endp
 
 ACAO_MENU proc
     push AX
