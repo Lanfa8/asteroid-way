@@ -63,12 +63,18 @@ TEMPO_DX dw 0C350H
 SEED dw 1
 
 POSICOES_ASTEROIDES dw 0,0,0,0,0,0,0,0
-TOTAL_ASTEROIDES_SIMULTANEOS dw 1
+TOTAL_ASTEROIDES_SIMULTANEOS dw 8
 
 MAX_PROJETEIS EQU 10
+DURACAO_TOTAL_ESCUDO_CONST EQU 5 ; 5 segundos
 
 ; Cada proj?til consiste em 2 palavras (para posX e posY) e 1 byte (para ativo)
 posicoes_projeteis DW 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+
+POSICAO_ESCUDO dw 0
+ESCUDO_DEPLOYED db 0
+TEMPO_RESTANTE_ESCUDO db 0
+
 .code
 
 CALC_STRING_LENGTH proc
@@ -614,7 +620,9 @@ INICIAR_JOGO proc
         call LIMPA_PROJETEIS
         call ATUALIZA_PROJETEIS
         call DESENHA_PROJETEIS
+        call ATIVAR_ESCUDO
         call ATUALIZA_COLISOES_ASTEROIDES
+
             
         call PAUSA_CICLO      ; Pausa o ciclo para controlar a velocidade do jogo
         
@@ -623,13 +631,16 @@ INICIAR_JOGO proc
         
         je ATUALIZA_TEMPO_RESTANTE
         call MOVE_ASTEROIDES
+        call MOVE_ESCUDO
         jmp LOOP_MAIN         ; Repete o loop
         
         
     ATUALIZA_TEMPO_RESTANTE:
         dec RESTANTE_TEMPO
         xor BX, BX
-        call GERA_ASTEROIDE
+        call GERA_ASTEROIDE ;TODO: mover para lugar que controle corretamente o tempo
+        call GERA_ESCUDO
+        call ATUALIZA_TEMPO_ESCUDO ;manter aqui, pois é baseado em segundos
         jmp LOOP_MAIN
         
     FIM_JOGO:
@@ -638,6 +649,104 @@ INICIAR_JOGO proc
         pop CX
         pop BX
         pop AX
+    ret
+endp
+
+ATIVAR_ESCUDO proc
+    push AX
+    push BX
+    push DX
+    push SI
+
+    cmp POSICAO_ESCUDO, 0
+    je FIM_ATIVA_ESCUDO
+    
+    mov AX, [POSICAO_Y_NAVE]
+    mov DX, 320
+    mul DX
+    add AX, [POSICAO_X_NAVE]
+    
+    mov BX, POSICAO_ESCUDO
+    call VERIFICA_COLISAO_10x10
+
+    cmp DX, 1
+    jne FIM_ATIVA_ESCUDO
+
+    mov AX, POSICAO_ESCUDO
+    mov SI, offset QUADRADO_PRETO
+    call DESENHA_ELEMENTO_10x10
+
+    mov POSICAO_ESCUDO, 0
+    mov TEMPO_RESTANTE_ESCUDO, DURACAO_TOTAL_ESCUDO_CONST 
+
+    FIM_ATIVA_ESCUDO:
+        pop SI
+        pop DX
+        pop BX
+        pop AX
+        ret
+    ret
+endp
+
+ATUALIZA_TEMPO_ESCUDO proc
+    cmp TEMPO_RESTANTE_ESCUDO, 0
+    je FIM_ATUALIZA_TEMPO_ESCUDO
+
+    dec TEMPO_RESTANTE_ESCUDO
+    FIM_ATUALIZA_TEMPO_ESCUDO:
+    ret
+endp
+
+MOVE_ESCUDO proc
+    push AX
+    push BX
+    push CX
+
+    cmp POSICAO_ESCUDO, 0
+    je FIM_MOVE_ESCUDO
+
+    mov AX, POSICAO_ESCUDO
+    add AX, 9 ;aponta para a ultima coluna
+    mov BX, 10
+    call LIMPA_COLUNA_PIXELS
+
+    dec POSICAO_ESCUDO
+
+    mov AX, POSICAO_ESCUDO
+    mov SI, offset ESCUDO
+    call DESENHA_ELEMENTO_10x10
+
+    FIM_MOVE_ESCUDO:
+        pop CX
+        pop BX
+        pop AX
+    ret
+endp
+
+GERA_ESCUDO proc
+    push DX
+    push AX
+    push SI
+
+    cmp ESCUDO_DEPLOYED, 1
+    je FIM_GERA_ESCUDO
+
+    call RAND_NUMBER
+    cmp DL, 5
+    jae FIM_GERA_ESCUDO ; 10% de chance de gerar escudo
+
+    inc ESCUDO_DEPLOYED
+
+    mov AX, 31980 ;centro da tela
+    mov POSICAO_ESCUDO, AX
+
+    mov SI, offset ESCUDO
+    call DESENHA_ELEMENTO_10x10
+
+    FIM_GERA_ESCUDO:
+        pop SI
+        pop AX
+        pop DX
     ret
 endp
 
@@ -677,8 +786,16 @@ ATUALIZA_COLISOES_ASTEROIDES proc
         
         xor AX, AX
         mov [SI], AX ;limpa asteroide da memoria
-        dec NRO_VIDAS
         pop AX
+        
+        cmp TEMPO_RESTANTE_ESCUDO, 0
+        je FLAG_DIMINUI_VIDAS_LOOP_COLISOES_ASTEROIDES
+
+        mov TEMPO_RESTANTE_ESCUDO, 0 ;fim escudo, e nao toma dano nas vidas
+        jmp FLAG_COTINUA_LOOP_PERCORRE_ASTEROIDES_COLISOES
+
+        FLAG_DIMINUI_VIDAS_LOOP_COLISOES_ASTEROIDES:
+            dec NRO_VIDAS
 
         FLAG_COTINUA_LOOP_PERCORRE_ASTEROIDES_COLISOES:
             add SI, 2 ; word
