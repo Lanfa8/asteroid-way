@@ -3,6 +3,7 @@
 .stack 1000H
 
 .data
+LARGURA_TELA equ 320
 
 LOGO    db "            _                 _     _   "
         db "           | |               (_)   | |  "
@@ -61,7 +62,11 @@ SEED dw 1
 
 POSICOES_ASTEROIDES dw 0,0,0,0,0,0,0,0
 TOTAL_ASTEROIDES_SIMULTANEOS dw 8 
-      
+
+MAX_PROJETEIS EQU 10
+
+; Cada proj?til consiste em 2 palavras (para posX e posY) e 1 byte (para ativo)
+posicoes_projeteis DW 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 .code
 
 CALC_STRING_LENGTH proc
@@ -261,7 +266,7 @@ PINTA_LINHA proc
     push DX
     
     mov DI, BX
-    mov AX, 320
+    mov AX, LARGURA_TELA
     
     mul DI
     mov DI, AX
@@ -270,7 +275,7 @@ PINTA_LINHA proc
     mov AX, CX
     
     xor CX, CX
-    mov CX, 320 ;largura tela
+    mov CX, LARGURA_TELA
     
     LOOP_PINTA_PIXEL:
         stosb
@@ -361,7 +366,7 @@ DESENHA_INTERFACE proc
     
     LOOP_QUADRADO:
         call DESENHA_PIXELS
-        add AX, 320 ;pula 1 linha
+        add AX, LARGURA_TELA ;pula 1 linha
         loop LOOP_QUADRADO
         
     call ATUALIZA_BARRA_VIDA
@@ -388,7 +393,7 @@ ATUALIZAR_BARRA_STATUS proc
     mov CX, 10
     LOOP_LINHAS_STATUS:
         call DESENHA_PIXELS
-        add AX, 320
+        add AX, LARGURA_TELA
         loop LOOP_LINHAS_STATUS
         
     ;restaura AX com a coordenada inicial que est? na pilha
@@ -411,7 +416,7 @@ ATUALIZAR_BARRA_STATUS proc
     mov CX, 10
     LOOP_LINHAS_STATUS_VAZIO:
         call DESENHA_PIXELS
-        add AX, 320
+        add AX, LARGURA_TELA
         loop LOOP_LINHAS_STATUS_VAZIO
     
     pop AX
@@ -455,6 +460,7 @@ ATUALIZA_BARRA_VIDA proc
     pop AX
     ret
 endp
+
 
 GERA_ASTEROIDE proc
     push AX
@@ -584,11 +590,11 @@ INICIAR_JOGO proc
         call ATUALIZA_BARRA_TEMPO
         
         call LE_ENTRADA ; Verifica e processa a entrada do teclado
-        call LIMPA_AREA_NAVE ; Limpa a ?rea onde a nave estava
+       
         ; Calcula a posi??o inicial da nave em pixels
         ; Cada linha tem 320 pixels, ent?o multiplique a coordenada Y por 320 e some com a coordenada X
         mov AX, POSICAO_Y_NAVE
-        mov CX, 320
+        mov CX, LARGURA_TELA
         mul CX
         add AX, POSICAO_X_NAVE
         mov DI, AX          ; Armazena a posi??o calculada em DI
@@ -597,7 +603,11 @@ INICIAR_JOGO proc
 
         ; Agora, DI tem a posi??o correta para desenhar a nave
         call DESENHA_ELEMENTO_10x10 ; Desenha a nave na posi??o atualizada
- 
+        
+        call LIMPA_PROJETEIS
+        call ATUALIZA_PROJETEIS
+        call DESENHA_PROJETEIS
+            
         call PAUSA_CICLO      ; Pausa o ciclo para controlar a velocidade do jogo
         
         inc BX
@@ -614,20 +624,132 @@ INICIAR_JOGO proc
         jmp LOOP_MAIN
         
     FIM_JOGO:
-        pop BX
+		pop BX
         pop AX
     ret
 endp
 
+ATUALIZA_PROJETEIS proc
+    push AX
+	push BX
+    push CX
+    push DI
+    push DX
+
+    mov CX, MAX_PROJETEIS
+    mov DI, offset posicoes_projeteis
+
+    ATUALIZA_LOOP:
+         mov AX, [DI]          ; Carrega a posição linear do projétil
+         cmp AX, 0
+         je PROXIMO_PROJETIL
+
+          add AX, 2             ; Move 2 pixels para a direita
+          mov [DI], AX          ; Atualiza a posição do projétil
+
+        ; Verifica se o projétil atingiu o final da linha
+        ; Para isso, calculamos AX mod 320 e comparamos com 318 (320 - 2)
+        push AX
+        mov DX, 0
+        mov BX, 320
+        div BX               ; DX agora tem AX mod 320
+        cmp DX, 0
+        je DESATIVA_PROJETIL ; Se >= 318, está no final da linha ou passou dela
+        pop AX
+        jmp PROXIMO_PROJETIL
+
+        DESATIVA_PROJETIL:
+          pop AX
+          mov [DI], 0          ; Desativa o projétil
+
+        PROXIMO_PROJETIL:
+          add DI, 2            ; Avança para o próximo projétil
+          loop ATUALIZA_LOOP
+
+    pop DX
+    pop DI
+    pop CX
+	pop BX
+    pop AX
+    ret
+ATUALIZA_PROJETEIS endp
+
+LIMPA_PROJETEIS proc
+    push AX
+    push BX
+    push CX
+    push DI
+
+    mov CX, MAX_PROJETEIS
+    mov DI, offset posicoes_projeteis
+
+    LIMPA_LOOP:
+        mov AX, [DI]
+        cmp AX, 0
+        je PROXIMO_PROJETIL_LIMPA
+
+        ; Aqui você pode chamar DESENHA_PIXELS ou uma função semelhante
+        ; para limpar (pintar com a cor de fundo) a posição do projétil
+        ; Por exemplo, se a cor de fundo for preta (0), você pode fazer:
+        mov BX, 0 ; Cor preta
+        mov DX, 1 ; Tamanho do projétil
+        call DESENHA_PIXELS
+
+    PROXIMO_PROJETIL_LIMPA:
+        add DI, 2 ; Avança para o próximo projétil
+    loop LIMPA_LOOP
+
+    pop DI
+    pop CX
+    pop BX
+    pop AX
+    ret
+LIMPA_PROJETEIS endp
+
+DESENHA_PROJETEIS proc
+    push AX
+    push BX
+    push CX
+    push SI
+    push DI
+
+    mov CX, MAX_PROJETEIS        ; Número máximo de projéteis
+    mov SI, offset posicoes_projeteis
+    mov BX, 0FH                  ; Cor branca (branco)
+
+    LOOP_DESENHA_PROJETIL:
+        lodsw                     ; Carrega a posição do próximo projétil
+        or AX, AX                 ; Verifica se a posição é ativa (não zero)
+        jz CONTINUA               ; Se zero, pula para o próximo projétil
+
+        mov DI, AX                ; DI recebe a posição do projétil
+        mov DX, 1                 ; Quantidade de pixels a desenhar (1 pixel)
+        call DESENHA_PIXELS       ; Desenha o projétil
+
+        CONTINUA:
+        loop LOOP_DESENHA_PROJETIL
+
+    pop DI
+    pop SI
+    pop CX
+    pop BX
+    pop AX
+    ret
+endp
+
 LE_ENTRADA proc
-    mov AX, POSICAO_X_NAVE
-    mov POSICAO_X_NAVE_ANTERIOR, AX
-    mov AX, POSICAO_Y_NAVE
-    mov POSICAO_Y_NAVE_ANTERIOR, AX
+
     push AX
     push BX
     push CX
     push DX
+	push DI
+	push SI
+
+	mov AX, POSICAO_X_NAVE
+    mov POSICAO_X_NAVE_ANTERIOR, AX
+    mov AX, POSICAO_Y_NAVE
+    mov POSICAO_Y_NAVE_ANTERIOR, AX
 
     mov AH, 1 ; Verifica se h? uma tecla pressionada
     int 16h
@@ -636,27 +758,75 @@ LE_ENTRADA proc
     mov AH, 0 ; Pega o scan code da tecla pressionada
     int 16h
 
-    cmp AH, 11h ; Tecla W (cima)
+    cmp AH, 48h ; Tecla seta para cima
     je MOVE_CIMA
-    cmp AH, 1Fh ; Tecla S (baixo)
+    cmp AH, 50h ; Tecla seta para baixo
     je MOVE_BAIXO
+    
+
+    cmp AH, 39h ; Tecla Espa?o
+    je ATIRA
 
     jmp FIM_LE_ENTRADA
 
-    MOVE_CIMA:
-        dec POSICAO_Y_NAVE
-        jmp FIM_LE_ENTRADA
+MOVE_CIMA:
+    dec POSICAO_Y_NAVE
+    ; Calcula a posi??o da linha inferior da nave para limpar
+    mov AX, POSICAO_Y_NAVE
+    add AX, 10 ; Tamanho da nave em altura
+    mov CX, LARGURA_TELA
+    mul CX
+    add AX, POSICAO_X_NAVE
+    mov DI, AX
+    call LIMPA_LINHA
+    jmp FIM_LE_ENTRADA
 
-    MOVE_BAIXO:
-        inc POSICAO_Y_NAVE
+MOVE_BAIXO:
+   inc POSICAO_Y_NAVE
+    ; Calcula a posi??o da linha superior da nave para limpar
+    mov AX, POSICAO_Y_NAVE
+    dec AX ; Move uma linha acima da posi??o atual
+    mov CX, LARGURA_TELA
+    mul CX
+    add AX, POSICAO_X_NAVE
+    mov DI, AX
+    call LIMPA_LINHA
+    jmp FIM_LE_ENTRADA
+    
+ATIRA:
+    mov CX, MAX_PROJETEIS
+    mov DI, offset posicoes_projeteis
 
-    FIM_LE_ENTRADA:
+    PROCURA_PROJETIL:
+        lodsw
+        cmp AX, 0
+        je ATIVA_PROJETIL
+        add DI, 2 ; Avança para o próximo projétil (2 bytes por projétil)
+    loop PROCURA_PROJETIL
+    jmp FIM_LE_ENTRADA
+
+ATIVA_PROJETIL:
+    sub DI, 2 ; Volta ao início do projétil
+
+    ; Configura a posição inicial do projétil
+    mov AX, POSICAO_Y_NAVE
+    mov BX, 330
+    mul BX              ; AX = POSICAO_Y_NAVE * 320
+    add AX, POSICAO_X_NAVE ; AX = AX + POSICAO_X_NAVE
+    mov [DI], AX        ; Armazena a posição linear absoluta no array projeteis
+
+    jmp FIM_LE_ENTRADA
+    
+FIM_LE_ENTRADA:
+	pop SI
+	pop DI
     pop DX
-        pop CX
-        pop BX
-        pop AX
-        ret
+    pop CX
+    pop BX
+    pop AX
+    ret
 LE_ENTRADA endp
+
 
 
 LIMPAR_TELA proc
@@ -683,39 +853,21 @@ LIMPAR_TELA proc
     ret
 endp
 
-LIMPA_AREA_NAVE proc
+LIMPA_LINHA proc
     push AX
-    push BX
     push CX
-    push DX
     push DI
 
-    ; Calcula a posi??o inicial da ?rea da nave em pixels
-    mov AX, POSICAO_Y_NAVE_ANTERIOR
-    mov CX, 320
-    mul CX
-    add AX, POSICAO_X_NAVE_ANTERIOR
-    mov DI, AX
+    mov CX, 10 ; Largura da nave
+    xor AX, AX ; Cor preta para limpar (ajuste conforme necess?rio)
 
-    ; Limpa a ?rea da nave (10x10 pixels, por exemplo)
-    ; Supondo que o fundo ? preto (cor 0)
-    mov CX, 10 ; Altura da nave
-    LIMPA_LINHA:
-        push CX
-        mov CX, 10 ; Largura da nave
-        xor AX, AX ; Cor preta
-        REP STOSB  ; Preenche a linha com preto
-        pop CX
-        add DI, 310 ; Move para a pr?xima linha
-        loop LIMPA_LINHA
+    REP STOSB  ; Preenche a linha com preto
 
     pop DI
-    pop DX
     pop CX
-    pop BX
     pop AX
     ret
-LIMPA_AREA_NAVE endp
+LIMPA_LINHA endp
 
 ACAO_MENU proc
     push AX
@@ -753,7 +905,6 @@ PAUSA_CICLO proc
     pop AX
     ret
 endp
-
 
 ;retorna um numero aleatorio em DL de 0 a 9
 RAND_NUMBER proc
