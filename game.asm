@@ -77,6 +77,7 @@ TEMPO_RESTANTE_ESCUDO db 0
 
 .code
 
+;retorna em CX
 CALC_STRING_LENGTH proc
     push SI
     xor CX, CX
@@ -89,7 +90,7 @@ CALC_STRING_LENGTH proc
 
         jmp STRLEN_LACO
 
-    STRLEN_FIM:
+     STRLEN_FIM:
         pop SI
         ret
 endp
@@ -102,6 +103,8 @@ ESCREVE_STRING proc
     push DI
     push BX
     push DX
+    push CX
+    push ES
 
     mov AX, DS
     mov ES, AX
@@ -113,6 +116,8 @@ ESCREVE_STRING proc
     mov BP, SI
     int 10H
 
+    pop ES
+    pop CX
     pop DX
     pop BX
     pop DI
@@ -750,6 +755,24 @@ GERA_ESCUDO proc
     ret
 endp
 
+
+;SI = posicao do array onde est? a coordenada do asteroide
+LIMPA_ASTEROIDE proc
+    push AX
+    push SI
+    
+    mov AX, [SI]
+    mov SI, offset QUADRADO_PRETO
+    call DESENHA_ELEMENTO_10x10
+    
+    pop SI
+    
+    xor AX, AX
+    mov [SI], AX ;limpa asteroide da memoria
+    pop AX
+    ret
+endp
+
 ATUALIZA_COLISOES_ASTEROIDES proc
     push AX
     push BX
@@ -770,24 +793,19 @@ ATUALIZA_COLISOES_ASTEROIDES proc
         cmp BX, 0
         je FLAG_COTINUA_LOOP_PERCORRE_ASTEROIDES_COLISOES
         
+        push AX
+        mov AX, BX
+        call VERIFICA_COLISAO_FINAL_TELA_ESQUERDA
+        cmp DX, 1
+        je TERMINOU_TELA_ASTEROIDE
+        pop AX ;restaura AX 1
+        
         call VERIFICA_COLISAO_10x10
         cmp DX, 1
         jne FLAG_COTINUA_LOOP_PERCORRE_ASTEROIDES_COLISOES
         
-        
-        push AX
-        push SI
-        
-        mov AX, [SI]
-        mov SI, offset QUADRADO_PRETO
-        call DESENHA_ELEMENTO_10x10
-        
-        pop SI
-        
-        xor AX, AX
-        mov [SI], AX ;limpa asteroide da memoria
-        pop AX
-        
+        call LIMPA_ASTEROIDE
+
         cmp TEMPO_RESTANTE_ESCUDO, 0
         je FLAG_DIMINUI_VIDAS_LOOP_COLISOES_ASTEROIDES
 
@@ -800,6 +818,13 @@ ATUALIZA_COLISOES_ASTEROIDES proc
         FLAG_COTINUA_LOOP_PERCORRE_ASTEROIDES_COLISOES:
             add SI, 2 ; word
             loop LOOP_PERCORRE_ASTEROIDES_COLISOES
+
+    jmp FIM_VERIFICA_COLISOES_ASTEROIDES
+
+    TERMINOU_TELA_ASTEROIDE:
+        call LIMPA_ASTEROIDE
+        pop AX ;restaura AX 1
+        jmp FLAG_COTINUA_LOOP_PERCORRE_ASTEROIDES_COLISOES
 
     FIM_VERIFICA_COLISOES_ASTEROIDES:
         pop SI
@@ -1051,6 +1076,34 @@ LIMPA_LINHA proc
     pop AX
     ret
 LIMPA_LINHA endp
+
+;ax = coordenada esquerda superior
+;dx = retorna 1 se colidiu
+VERIFICA_COLISAO_FINAL_TELA_ESQUERDA proc
+    push BX
+    push CX
+
+    xor DX, DX
+    mov BX, 0
+    mov CX, 200 ;200pixel altura
+    LOOP_VERIFICA_COLISAO_FINAL_TELA_ESQUERDA:
+        cmp AX, BX
+        je COLIDIU_FINAL_TELA_ESQUERDA
+        add BX, 320 ;pula linha (320px)
+
+        loop LOOP_VERIFICA_COLISAO_FINAL_TELA_ESQUERDA
+    
+    jmp FIM_VERIFICA_COLISAO_FINAL_TELA_ESQUERDA
+
+    COLIDIU_FINAL_TELA_ESQUERDA:
+        mov DX, 1
+        jmp FIM_VERIFICA_COLISAO_FINAL_TELA_ESQUERDA
+
+    FIM_VERIFICA_COLISAO_FINAL_TELA_ESQUERDA:
+        pop CX 
+        pop BX
+    ret
+endp
 
 
 ;ax = coordenada esquerda superior1
