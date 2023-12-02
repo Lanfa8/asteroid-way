@@ -63,7 +63,7 @@ TEMPO_DX dw 0C350H
 SEED dw 1
 
 POSICOES_ASTEROIDES dw 0,0,0,0,0,0,0,0
-TOTAL_ASTEROIDES_SIMULTANEOS dw 8 
+TOTAL_ASTEROIDES_SIMULTANEOS dw 1
 
 MAX_PROJETEIS EQU 10
 
@@ -875,10 +875,11 @@ ATIVA_PROJETIL:
 
     ; Configura a posição inicial do projétil
     mov AX, POSICAO_Y_NAVE
-    mov BX, 330
-    mul BX              ; AX = POSICAO_Y_NAVE * 320
+    mov BX, 320            ; Largura da tela
+    mul BX                 ; AX = POSICAO_Y_NAVE * 320
     add AX, POSICAO_X_NAVE ; AX = AX + POSICAO_X_NAVE
-    mov [DI], AX        ; Armazena a posição linear absoluta no array projeteis
+    add AX, 1610 ; (320 * 5 (metade da nave)) + 10
+    mov [DI], AX           ; Armazena a posição linear absoluta no array projeteis
 
     jmp FIM_LE_ENTRADA
     
