@@ -1131,6 +1131,7 @@ LIMPA_PROJETEIS proc
     push BX
     push CX
     push DI
+	push DX
 
     mov CX, MAX_PROJETEIS
     mov DI, offset posicoes_projeteis
@@ -1151,6 +1152,7 @@ LIMPA_PROJETEIS proc
         add DI, 2 ; Avança para o próximo projétil
     loop LIMPA_LOOP
 
+	pop DX
     pop DI
     pop CX
     pop BX
@@ -1164,6 +1166,7 @@ DESENHA_PROJETEIS proc
     push CX
     push SI
     push DI
+	push DX
 
     mov CX, MAX_PROJETEIS        ; Número máximo de projéteis
     mov SI, offset posicoes_projeteis
@@ -1181,6 +1184,7 @@ DESENHA_PROJETEIS proc
         CONTINUA:
         loop LOOP_DESENHA_PROJETIL
 
+	pop DX
     pop DI
     pop SI
     pop CX
@@ -1247,18 +1251,20 @@ MOVE_BAIXO:
     
 ATIRA:
     mov CX, MAX_PROJETEIS
-    mov DI, offset posicoes_projeteis
+    mov SI, offset posicoes_projeteis
 
     PROCURA_PROJETIL:
         lodsw
         cmp AX, 0
         je ATIVA_PROJETIL
-        add DI, 2 ; Avança para o próximo projétil (2 bytes por projétil)
     loop PROCURA_PROJETIL
     jmp FIM_LE_ENTRADA
 
 ATIVA_PROJETIL:
-    sub DI, 2 ; Volta ao início do projétil
+	push AX
+	push BX
+
+   ; sub DI, 2 ; Volta ao início do projétil
 
     ; Configura a posição inicial do projétil
     mov AX, POSICAO_Y_NAVE
@@ -1266,8 +1272,10 @@ ATIVA_PROJETIL:
     mul BX                 ; AX = POSICAO_Y_NAVE * 320
     add AX, POSICAO_X_NAVE ; AX = AX + POSICAO_X_NAVE
     add AX, 1610 ; (320 * 5 (metade da nave)) + 10
-    mov [DI], AX           ; Armazena a posição linear absoluta no array projeteis
+    mov [SI], AX           ; Armazena a posição linear absoluta no array projeteis
 
+	pop BX
+	pop AX
     jmp FIM_LE_ENTRADA
     
 FIM_LE_ENTRADA:
