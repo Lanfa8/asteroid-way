@@ -1250,6 +1250,23 @@ DESENHA_PROJETEIS proc
     ret
 endp
 
+LIMPA_BUFFER_TECLADO proc
+    push AX
+
+    LOOP_LIMPA_BUFFER:
+        mov AH, 1      ; Verifica se há uma tecla pressionada
+        int 16h
+        jz FIM_LIMPA   ; Se não, saia do loop
+
+        mov AH, 0      ; Lê a tecla pressionada para limpá-la do buffer
+        int 16h
+        jmp LOOP_LIMPA_BUFFER ; Repete até que o buffer esteja vazio
+
+    FIM_LIMPA:
+    pop AX
+    ret
+LIMPA_BUFFER_TECLADO endp
+
 LE_ENTRADA proc
 
     push AX
@@ -1268,7 +1285,7 @@ LE_ENTRADA proc
     int 16h
     jz FIM_LE_ENTRADA ; Se nenhuma tecla foi pressionada, pula a atualiza??o
 
-    mov AH, 0 ; Pega o scan code da tecla pressionada
+    mov AH, 0
     int 16h
 
     cmp AH, 48h ; Tecla seta para cima
@@ -1336,6 +1353,7 @@ ATIVA_PROJETIL:
     jmp FIM_LE_ENTRADA
     
 FIM_LE_ENTRADA:
+	call LIMPA_BUFFER_TECLADO 
     pop SI
     pop DI
     pop DX
