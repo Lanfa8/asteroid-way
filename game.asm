@@ -63,10 +63,12 @@ TEMPO_DX dw 0C350H
 SEED dw 1
 
 POSICOES_ASTEROIDES dw 0,0,0,0,0,0,0,0
-TOTAL_ASTEROIDES_SIMULTANEOS dw 8
 
+;constantes configuracao jogo
+TOTAL_ASTEROIDES_SIMULTANEOS dw 8
 MAX_PROJETEIS EQU 10
 DURACAO_TOTAL_ESCUDO_CONST EQU 5 ; 5 segundos
+CHANCE_APARECER_ESCUDO EQU 1 ; de 0 a 9 -> sendo 0 10% e 9 100%
 
 ; Cada proj?til consiste em 2 palavras (para posX e posY) e 1 byte (para ativo)
 posicoes_projeteis DW 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
@@ -737,8 +739,8 @@ GERA_ESCUDO proc
     je FIM_GERA_ESCUDO
 
     call RAND_NUMBER
-    cmp DL, 5
-    jae FIM_GERA_ESCUDO ; 10% de chance de gerar escudo
+    cmp DL, CHANCE_APARECER_ESCUDO
+    jae FIM_GERA_ESCUDO
 
     inc ESCUDO_DEPLOYED
 
@@ -1155,7 +1157,7 @@ VERIFICA_COLISAO_10x10 proc
     
     ; verfica os 8 pixels restantes da borda direita
     push AX
-    add AX, 19
+    add AX, 329 ;pula 1 linha (320px) + 9 pixels
     mov CX, 8
     LOOP_VERIFICA_COLISAO_10x10_DIREITA:
         call VERIFICA_COLISAO_PIXEL_COM_10X10
