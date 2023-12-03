@@ -1115,30 +1115,65 @@ VERIFICA_COLISAO_10x10 proc
 
     xor DX, DX
 
+    ;verifica os 10 pixels superiores
+    push AX
     mov CX, 10
-    LOOP_EXTERNO_VERIFICA_COLISAO_10x10:
-        push CX
-        mov CX, 10
-        LOOP_INTERNO_VERIFICA_COLISAO_10x10:
-            call VERIFICA_COLISAO_PIXEL_COM_10X10
-            cmp DX, 1
-            je COLIDIU_10x10
-
-            inc AX  
-            loop LOOP_INTERNO_VERIFICA_COLISAO_10x10
+    LOOP_VERIFICA_COLISAO_10x10_SUPERIOR:
+        call VERIFICA_COLISAO_PIXEL_COM_10X10
+        cmp DX, 1
+        je COLIDIU_10x10
         
-        pop CX ; restaura1
-        add AX, 310 ;pula linha (320px - 10px)
-        loop LOOP_EXTERNO_VERIFICA_COLISAO_10x10
+        inc AX
+        loop LOOP_VERIFICA_COLISAO_10x10_SUPERIOR
+    pop AX
+    
+    ;verifica os 10 pixels inferiores
+    push AX
+    add AX, 2880 ;pula 9 linhas (320px) * 9
+    mov CX, 10
+    LOOP_VERIFICA_COLISAO_10x10_INFERIOR:
+        call VERIFICA_COLISAO_PIXEL_COM_10X10
+        cmp DX, 1
+        je COLIDIU_10x10
+
+        inc AX
+        loop LOOP_VERIFICA_COLISAO_10x10_INFERIOR
+    pop AX
+    
+    ;verifica os 8 pixels restantes da borda esquerda
+    push AX
+    add AX, 320 ;pula 1 linha (320px)
+    mov CX, 8
+    LOOP_VERIFICA_COLISAO_10x10_ESQUERDA:
+        call VERIFICA_COLISAO_PIXEL_COM_10X10
+        cmp DX, 1
+        je COLIDIU_10x10
+
+        add AX, 320
+        loop LOOP_VERIFICA_COLISAO_10x10_ESQUERDA
+    pop AX
+    
+    ; verfica os 8 pixels restantes da borda direita
+    push AX
+    add AX, 19
+    mov CX, 8
+    LOOP_VERIFICA_COLISAO_10x10_DIREITA:
+        call VERIFICA_COLISAO_PIXEL_COM_10X10
+        cmp DX, 1
+        je COLIDIU_10x10
+
+        add AX, 320
+        loop LOOP_VERIFICA_COLISAO_10x10_DIREITA
+    pop AX
 
     jmp FIM_VERIFICA_COLISAO_10x10
     COLIDIU_10x10:
-        pop CX ;restaura 1  
+        pop AX  
         
     FIM_VERIFICA_COLISAO_10x10:
         pop CX
         pop AX
-        ret
+    ret
 endp
 
 ;bx = coordenada inicial elemento 10x10
@@ -1147,26 +1182,68 @@ endp
 VERIFICA_COLISAO_PIXEL_COM_10X10 proc
     push CX
     push BX
-    
     xor DX, DX
-    mov CX, 10
-    LOOP_EXTERNO_VERIFICA_COLISAO_PIXEL_COM_10X10:
-        push CX
-        mov CX, 10
-        LOOP_INTERNO_VERIFICA_COLISAO_PIXEL_COM_10X10:
-            cmp AX, BX
-            je COLIDIU
-            inc BX
-            loop LOOP_INTERNO_VERIFICA_COLISAO_PIXEL_COM_10X10
-        
-            pop CX ;restaura
-        add BX, 310 ;pula linha (320px - 10px)
-        loop LOOP_EXTERNO_VERIFICA_COLISAO_PIXEL_COM_10X10
+    
+    ; verifica os 10 pixels da borda superior
+    push BX
+    cmp AX, BX
+    jae FLAG_VERIFICA_COLISAO_SUPERIOR 
+    jmp FLAG_NAO_COLIDIU_SUPERIOR
+
+    FLAG_VERIFICA_COLISAO_SUPERIOR:
+    add BX, 10
+    cmp AX, BX
+    ja FLAG_NAO_COLIDIU_SUPERIOR 
+
+    jmp COLIDIU
+
+    FLAG_NAO_COLIDIU_SUPERIOR:
+    pop BX
+
+
+    push BX
+    add BX, 2880 ;pula 9 linhas (320px) * 9 
+    cmp AX, BX
+    jae FLAG_VERIFICA_COLISAO_INFERIOR 
+    jmp FLAG_NAO_COLIDIU_INFERIOR
+
+    FLAG_VERIFICA_COLISAO_INFERIOR:
+    add BX, 10
+    cmp AX, BX
+    ja FLAG_NAO_COLIDIU_INFERIOR 
+
+    jmp COLIDIU
+
+    FLAG_NAO_COLIDIU_INFERIOR:
+    pop BX
+
+    ; verifica os 8 pixels restantes da borda esquerda
+    push BX
+    add BX, 10
+    mov CX, 8
+    LOOP_VERIFICA_COLISAO_ESQUERDA:
+        cmp AX, BX
+        je COLIDIU
+        add BX, 320
+        loop LOOP_VERIFICA_COLISAO_ESQUERDA
+    pop BX
+
+    ;acho que podemos remover, não temos caso de colisão na borda direita
+    ; verifica os 8 pixels restantes da borda direita
+    push BX
+    add BX, 19
+    mov CX, 8
+    LOOP_VERIFICA_COLISAO_DIREITA:
+        cmp AX, BX
+        je COLIDIU
+        add BX, 320
+        loop LOOP_VERIFICA_COLISAO_DIREITA
+    pop BX
     
     jmp FIM_VERIFICA_COLISAO_PIXEL_COM_10X10
 
     COLIDIU:
-        pop CX ;restaura
+        pop BX ;restaura
         mov DX, 1
         jmp FIM_VERIFICA_COLISAO_PIXEL_COM_10X10
 
