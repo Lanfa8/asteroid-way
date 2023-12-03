@@ -1085,41 +1085,53 @@ ATUALIZA_PROJETEIS proc
     push AX
     push BX
     push CX
-    push DI
+    push SI
     push DX
 
     mov CX, MAX_PROJETEIS
-    mov DI, offset posicoes_projeteis
+    mov SI, offset posicoes_projeteis
 
     ATUALIZA_LOOP:
-         mov AX, [DI]          ; Carrega a posição linear do projétil
+         mov AX, [SI]          ; Carrega a posição linear do projétil
          cmp AX, 0
          je PROXIMO_PROJETIL
 
-          add AX, 2             ; Move 2 pixels para a direita
-          mov [DI], AX          ; Atualiza a posição do projétil
+         add AX, 2             ; Move 2 pixels para a direita
+         mov [SI], AX          ; Atualiza a posição do projétil
 
         ; Verifica se o projétil atingiu o final da linha
         ; Para isso, calculamos AX mod 320 e comparamos com 318 (320 - 2)
-        push AX
-        mov DX, 0
-        mov BX, 320
-        div BX               ; DX agora tem AX mod 320
-        cmp DX, 0
-        je DESATIVA_PROJETIL ; Se >= 318, está no final da linha ou passou dela
-        pop AX
+
+		push CX
+		MOV CX, 200
+
+		LOOP_VERIFICA_COLISAO_DIREITA_PROJETIL:
+			mov BX, 0
+			CMP BX, AX
+			JE DESATIVA_PROJETIL
+			add BX, 320
+			loop LOOP_VERIFICA_COLISAO_DIREITA
+
+        ;mov DX, 0
+       ; mov BX, 320
+       ; div BX               ; DX agora tem AX mod 320
+      ;  cmp DX, 0
+      ;  jae DESATIVA_PROJETIL ; Se >= 318, está no final da linha ou passou dela
+	    pop cx
         jmp PROXIMO_PROJETIL
 
         DESATIVA_PROJETIL:
-          pop AX
-          mov [DI], 0          ; Desativa o projétil
+          mov [SI], 0         ; Desativa o projétil
+		  MOV ES:SI,
+		  pop cx
+
 
         PROXIMO_PROJETIL:
-          add DI, 2            ; Avança para o próximo projétil
+          add SI, 2            ; Avança para o próximo projétil
           loop ATUALIZA_LOOP
 
     pop DX
-    pop DI
+    pop SI
     pop CX
     pop BX
     pop AX
