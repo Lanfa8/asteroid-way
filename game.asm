@@ -666,7 +666,6 @@ INICIAR_JOGO proc
         call ATIVAR_ESCUDO
         call ATIVAR_VIDA
         call ATUALIZA_COLISOES_ASTEROIDES
-
             
         call PAUSA_CICLO      ; Pausa o ciclo para controlar a velocidade do jogo
         
@@ -1044,7 +1043,11 @@ ATUALIZA_COLISOES_ASTEROIDES proc
         cmp DX, 1
         je TERMINOU_TELA_ASTEROIDE
         pop AX ;restaura AX 1
-        
+
+		call VERIFICA_COLISAO_PROJETIL_ASTEROIDES
+		cmp DX, 1
+		je FLAG_COTINUA_LOOP_PERCORRE_ASTEROIDES_COLISOES
+
         call VERIFICA_COLISAO_10x10
         cmp DX, 1
         jne FLAG_COTINUA_LOOP_PERCORRE_ASTEROIDES_COLISOES
@@ -1081,12 +1084,58 @@ ATUALIZA_COLISOES_ASTEROIDES proc
     ret
 endp
 
+
+VERIFICA_COLISAO_PROJETIL_ASTEROIDES proc
+    push AX
+    push BX
+	push CX
+    push DX
+	push DI
+
+	mov CX, MAX_PROJETEIS
+    mov DI, offset posicoes_projeteis
+
+    LOOP_VERIFICA_PROJETEIS:
+        mov AX, [DI] ; Carrega a posição do projétil
+		mov BX, [SI] ; Carrega a posição do asteroide
+        cmp AX, 0
+        je PROXIMO_PROJETIL_COLISAO ; Pula se o projétil não estiver ativo
+
+		call VERIFICA_COLISAO_PIXEL_COM_10X10 ; Verifica colisão entre projétil (AX) e asteroide (BX)
+		cmp DX, 1
+		je COLIDIU_PROJETIL
+
+        jmp PROXIMO_PROJETIL_COLISAO
+
+    COLIDIU_PROJETIL:
+		push DI
+        mov [DI], 0 ; Desativa o projétil]
+		mov DI, AX
+		mov AX, 0
+		stosw
+		pop DI
+        call LIMPA_ASTEROIDE ; Limpa a representação do asteroide na tela
+    PROXIMO_PROJETIL_COLISAO:
+        add DI, 2 ; Avança para o próximo projétil
+        loop LOOP_VERIFICA_PROJETEIS
+
+	pop DI
+    pop DX
+	pop CX
+    pop BX
+    pop AX
+ret
+
+endp
+
+
 ATUALIZA_PROJETEIS proc
     push AX
     push BX
     push CX
     push SI
     push DX
+	push DI
 
     mov CX, MAX_PROJETEIS
     mov SI, offset posicoes_projeteis
@@ -1125,6 +1174,7 @@ ATUALIZA_PROJETEIS proc
           add SI, 2            ; Avança para o próximo projétil
           loop ATUALIZA_PROJETEIS_LOOP
 
+	pop DI
     pop DX
     pop SI
     pop CX
@@ -1266,7 +1316,7 @@ ATIRA:
         je ATIVA_PROJETIL
         add SI, 2
         loop PROCURA_PROJETIL
-    
+
     jmp FIM_LE_ENTRADA
 
 ATIVA_PROJETIL:
