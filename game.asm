@@ -50,7 +50,7 @@ ESCUDO db 0,0,0,0,2,2,0,0,0,0,0,0,0,0,2,2,0,0,0,0,0,0,0,0,2,2,0,0,0,0,0,0,0,0,2,
 QUADRADO_PRETO db 100 dup(0)
 
 ;controladores jogo
-NRO_VIDAS db 5
+NRO_VIDAS db 7
 RESTANTE_TEMPO dw 30  
 NIVEL db 1
 TEMPO_DECORRIDO dw 0
@@ -69,6 +69,7 @@ TOTAL_ASTEROIDES_SIMULTANEOS dw 8
 MAX_PROJETEIS EQU 10
 DURACAO_TOTAL_ESCUDO_CONST EQU 5 ; 5 segundos
 CHANCE_APARECER_ESCUDO EQU 1 ; de 0 a 9 -> sendo 0 10% e 9 100%
+CHANCE_APARECER_VIDA EQU 5 ; de 9 a 0 -> sendo 0 100% e 9 10%
 
 ; Cada proj?til consiste em 2 palavras (para posX e posY) e 1 byte (para ativo)
 posicoes_projeteis DW 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
@@ -76,6 +77,9 @@ posicoes_projeteis DW 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 POSICAO_ESCUDO dw 0
 ESCUDO_DEPLOYED db 0
 TEMPO_RESTANTE_ESCUDO db 0
+
+POSICAO_VIDA dw 0
+VIDA_DEPLOYED db 0
 
 .code
 
@@ -502,7 +506,7 @@ GERA_ASTEROIDE proc
         call RAND_NUMBER
         
         mul DX
-        add AX, 300
+        add AX, 620 ;evitar que renderize na primeira linha
         
         mov SI, offset METEORO
         call DESENHA_ELEMENTO_10x10
@@ -628,6 +632,7 @@ INICIAR_JOGO proc
         call ATUALIZA_PROJETEIS
         call DESENHA_PROJETEIS
         call ATIVAR_ESCUDO
+        call ATIVAR_VIDA
         call ATUALIZA_COLISOES_ASTEROIDES
 
             
@@ -639,6 +644,7 @@ INICIAR_JOGO proc
         je ATUALIZA_TEMPO_RESTANTE
         call MOVE_ASTEROIDES
         call MOVE_ESCUDO
+        call MOVE_VIDA
         jmp LOOP_MAIN         ; Repete o loop
         
         
@@ -647,12 +653,105 @@ INICIAR_JOGO proc
         xor BX, BX
         call GERA_ASTEROIDE ;TODO: mover para lugar que controle corretamente o tempo
         call GERA_ESCUDO
+        call GERA_VIDA
         call ATUALIZA_TEMPO_ESCUDO ;manter aqui, pois é baseado em segundos
         jmp LOOP_MAIN
         
     FIM_JOGO:
         pop SI
         pop DI
+        pop CX
+        pop BX
+        pop AX
+    ret
+endp
+
+ATIVAR_VIDA proc
+    push AX
+    push BX
+    push DX
+    push SI
+
+    cmp POSICAO_VIDA, 0
+    je FIM_ATIVA_VIDA
+    
+    mov AX, [POSICAO_Y_NAVE]
+    mov DX, 320
+    mul DX
+    add AX, [POSICAO_X_NAVE]
+    
+    mov BX, POSICAO_VIDA
+    call VERIFICA_COLISAO_10x10
+
+    cmp DX, 1
+    jne FIM_ATIVA_VIDA
+
+    mov AX, POSICAO_VIDA
+    mov SI, offset QUADRADO_PRETO
+    call DESENHA_ELEMENTO_10x10
+
+    mov POSICAO_VIDA, 0
+    mov NRO_VIDAS, 10 ;recupera todas as vidas
+
+    FIM_ATIVA_VIDA:
+        pop SI
+        pop DX
+        pop BX
+        pop AX
+    ret
+endp
+
+GERA_VIDA proc
+    push DX
+    push AX
+    push SI
+
+    cmp VIDA_DEPLOYED, 1
+    je FIM_GERA_VIDA
+    
+    cmp NRO_VIDAS, 5 ;somente abaixo de 50% da vida
+    jae FIM_GERA_VIDA
+
+    call RAND_NUMBER
+    cmp DL, CHANCE_APARECER_VIDA
+    jl FIM_GERA_VIDA
+
+    inc VIDA_DEPLOYED
+
+    mov AX, 35180 ;abaixo do escudo para garantir que nao havera conflito
+    mov POSICAO_VIDA, AX
+
+    mov SI, offset VIDA
+    call DESENHA_ELEMENTO_10x10
+
+    FIM_GERA_VIDA:
+        pop SI
+        pop AX
+        pop DX
+
+    ret
+endp
+
+MOVE_VIDA proc
+    push AX
+    push BX
+    push CX
+
+    cmp POSICAO_VIDA, 0
+    je FIM_MOVE_VIDA
+
+    mov AX, POSICAO_VIDA
+    add AX, 9 ;aponta para a ultima coluna
+    mov BX, 10
+    call LIMPA_COLUNA_PIXELS
+
+    dec POSICAO_VIDA
+
+    mov AX, POSICAO_VIDA
+    mov SI, offset VIDA
+    call DESENHA_ELEMENTO_10x10
+
+    FIM_MOVE_VIDA:
         pop CX
         pop BX
         pop AX
