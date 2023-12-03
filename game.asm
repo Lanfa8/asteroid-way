@@ -548,21 +548,31 @@ MOVE_ASTEROIDES proc
     jmp FIM_MOVE_ASTEROIDES
     
     MOVE_ASTEROIDE_UNICO:
-        add AX, 9 ;aponta para a ultima coluna atual
-        mov BX, 10
-        call LIMPA_COLUNA_PIXELS
-        
-        mov DX, [SI]
-        dec DX
-        mov [SI], DX
-        
-        push SI
-        
-        mov AX, DX
-        mov SI, offset METEORO
-        call DESENHA_ELEMENTO_10x10
-        
-        pop SI
+        push CX
+        push AX
+        xor CX, CX
+        mov CL, NIVEL ;controla a velocidade
+        LOOP_MOVE_ASTEROIDE_UNICO:
+            mov AX, [SI]
+            add AX, 9 ;aponta para a ultima coluna atual
+            mov BX, 10
+            call LIMPA_COLUNA_PIXELS
+            
+            mov DX, [SI]
+            dec DX
+            mov [SI], DX
+            
+            push SI
+            
+            mov AX, DX
+            mov SI, offset METEORO
+            call DESENHA_ELEMENTO_10x10
+            
+            pop SI
+            loop LOOP_MOVE_ASTEROIDE_UNICO
+
+        pop AX
+        pop CX
         
         jmp FLAG_COTINUA_LOOP
     
@@ -664,7 +674,18 @@ INICIAR_JOGO proc
         call GERA_ESCUDO
         call GERA_VIDA
         call ATUALIZA_TEMPO_ESCUDO ;manter aqui, pois é baseado em segundos
+        cmp RESTANTE_TEMPO, 0
+        je PASSAR_NIVEL
+
+        FLAG_RETORNA_ATUALIZA_TEMPO_RESTANTE:
         jmp LOOP_MAIN
+    
+    PASSAR_NIVEL:
+        inc NIVEL
+        mov RESTANTE_TEMPO, 100
+        mov ESCUDO_DEPLOYED, 0
+        mov VIDA_DEPLOYED, 0
+        jmp FLAG_RETORNA_ATUALIZA_TEMPO_RESTANTE
     
     FIM_JOGO:
         call TELA_DERROTA
