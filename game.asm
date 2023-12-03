@@ -1091,44 +1091,39 @@ ATUALIZA_PROJETEIS proc
     mov CX, MAX_PROJETEIS
     mov SI, offset posicoes_projeteis
 
-    ATUALIZA_LOOP:
-         mov AX, [SI]          ; Carrega a posição linear do projétil
-         cmp AX, 0
-         je PROXIMO_PROJETIL
+    ATUALIZA_PROJETEIS_LOOP:
+        mov AX, [SI]          ; Carrega a posição linear do projétil
+        cmp AX, 0
+        je PROXIMO_PROJETIL
 
-         add AX, 2             ; Move 2 pixels para a direita
-         mov [SI], AX          ; Atualiza a posição do projétil
+        add AX, 1             ; Move 1 pixels para a direita
+        mov [SI], AX          ; Atualiza a posição do projétil
 
         ; Verifica se o projétil atingiu o final da linha
         ; Para isso, calculamos AX mod 320 e comparamos com 318 (320 - 2)
 
 		push CX
-		MOV CX, 200
-
+		mov CX, 200
+		mov BX, 0
 		LOOP_VERIFICA_COLISAO_DIREITA_PROJETIL:
-			mov BX, 0
-			CMP BX, AX
-			JE DESATIVA_PROJETIL
+			cmp BX, AX
+			je DESATIVA_PROJETIL
 			add BX, 320
-			loop LOOP_VERIFICA_COLISAO_DIREITA
+			loop LOOP_VERIFICA_COLISAO_DIREITA_PROJETIL
 
-        ;mov DX, 0
-       ; mov BX, 320
-       ; div BX               ; DX agora tem AX mod 320
-      ;  cmp DX, 0
-      ;  jae DESATIVA_PROJETIL ; Se >= 318, está no final da linha ou passou dela
 	    pop cx
         jmp PROXIMO_PROJETIL
 
         DESATIVA_PROJETIL:
           mov [SI], 0         ; Desativa o projétil
-		  MOV ES:SI,
+          mov DI, AX
+          mov AX, 0
+          stosw
 		  pop cx
-
 
         PROXIMO_PROJETIL:
           add SI, 2            ; Avança para o próximo projétil
-          loop ATUALIZA_LOOP
+          loop ATUALIZA_PROJETEIS_LOOP
 
     pop DX
     pop SI
@@ -1136,7 +1131,7 @@ ATUALIZA_PROJETEIS proc
     pop BX
     pop AX
     ret
-ATUALIZA_PROJETEIS endp
+endp
 
 LIMPA_PROJETEIS proc
     push AX
@@ -1266,17 +1261,17 @@ ATIRA:
     mov SI, offset posicoes_projeteis
 
     PROCURA_PROJETIL:
-        lodsw
+        mov AX, [SI]
         cmp AX, 0
         je ATIVA_PROJETIL
-    loop PROCURA_PROJETIL
+        add SI, 2
+        loop PROCURA_PROJETIL
+    
     jmp FIM_LE_ENTRADA
 
 ATIVA_PROJETIL:
 	push AX
 	push BX
-
-   ; sub DI, 2 ; Volta ao início do projétil
 
     ; Configura a posição inicial do projétil
     mov AX, POSICAO_Y_NAVE
