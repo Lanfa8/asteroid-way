@@ -20,6 +20,10 @@ LOGO    db "            _                 _     _   "
 VOCE_PERDEU db "  \   /_  __ __    _  __ _  _  __    |  "
             db "   \ // \/  |_    |_)|_ |_)| \|_ | | |  "
             db "    V \_/\__|__   |  |__| \|_/|__|_| o  ", "$"
+
+PARABENS db "        _  _  _  _  _  __    __ |       "
+         db "       |_)|_||_)|_||_)|_ |\|(_  |       "
+         db "       |  | || \| ||_)|__| |__) o       ", "$"
       
 TEXTO_JOGAR db "                  JOGAR                 ", "$"
 
@@ -74,6 +78,8 @@ MAX_PROJETEIS EQU 10
 DURACAO_TOTAL_ESCUDO_CONST EQU 5 ; 5 segundos
 CHANCE_APARECER_ESCUDO EQU 1 ; de 0 a 9 -> sendo 0 10% e 9 100%
 CHANCE_APARECER_VIDA EQU 5 ; de 9 a 0 -> sendo 0 100% e 9 10%
+MAX_NIVEIS EQU 1
+TEMPO_POR_NIVEL EQU 30 ; em segundos -> max 100 segundos
 
 ; Cada proj?til consiste em 2 palavras (para posX e posY) e 1 byte (para ativo)
 posicoes_projeteis DW 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
@@ -614,23 +620,30 @@ INICIAR_JOGO proc
     push DI
     push SI
     
+    ;resetando controladores do jogo
     mov NRO_VIDAS, 10
-    mov RESTANTE_TEMPO, 100
+    mov RESTANTE_TEMPO, TEMPO_POR_NIVEL
     mov NIVEL, 1
     mov TEMPO_DECORRIDO, 0
+    mov CX, TOTAL_ASTEROIDES_SIMULTANEOS
+    mov SI, offset POSICOES_ASTEROIDES
+    mov AX, 0
+    rep stosw
+    mov POSICAO_ESCUDO, 0
+    mov ESCUDO_DEPLOYED, 0
+    mov TEMPO_RESTANTE_ESCUDO, 0
+    mov POSICAO_VIDA, 0
+    mov VIDA_DEPLOYED, 0
 
     call MODO_VIDEO
     call DESENHA_INTERFACE
-
-    mov AX, 0A000H
-    mov ES, AX
-    
+   
     xor BX, BX  
     LOOP_MAIN:
         call ATUALIZA_BARRA_VIDA
         call ATUALIZA_BARRA_TEMPO
         cmp NRO_VIDAS, 0
-        je FIM_JOGO
+        je FIM_JOGO_DERROTA
         
         call LE_ENTRADA ; Verifica e processa a entrada do teclado
        
@@ -682,13 +695,23 @@ INICIAR_JOGO proc
     
     PASSAR_NIVEL:
         inc NIVEL
-        mov RESTANTE_TEMPO, 100
+        cmp NIVEL, MAX_NIVEIS
+        ja FIM_JOGO_VITORIA
+
+        mov RESTANTE_TEMPO, TEMPO_POR_NIVEL
         mov ESCUDO_DEPLOYED, 0
         mov VIDA_DEPLOYED, 0
         jmp FLAG_RETORNA_ATUALIZA_TEMPO_RESTANTE
     
-    FIM_JOGO:
+    FIM_JOGO_VITORIA:
+        call TELA_VITORIA
+        jmp FIM_JOGO
+
+    FIM_JOGO_DERROTA:
         call TELA_DERROTA
+        jmp FIM_JOGO
+
+    FIM_JOGO:
         pop SI
         pop DI
         pop CX
@@ -697,19 +720,19 @@ INICIAR_JOGO proc
     ret
 endp
 
-TELA_DERROTA proc
+;AL = cor de fundo
+;SI = posicao texto a ser exibido
+TELA_FINAL_JOGO proc
     push CX
     push DI
     push AX
     push DX
     push BX
 
-    xor AX, AX
     mov CX, 57600 ;tela inteira, menos 20 linhas da interface
-    mov AL, 4 ; vermelho
     mov DI, 0
 
-    LOOP_PINTA_TELA_DERROTA:
+    LOOP_PINTA_TELA_FIM_JOGO:
         stosb
         
         push CX
@@ -717,18 +740,16 @@ TELA_DERROTA proc
 
         mov AH, 86H
         mov CX, 0
-    
         mov DX, 0AH ; 10 em hexa
         int 15H
 
         pop AX
         pop CX 
         
-        loop LOOP_PINTA_TELA_DERROTA
+        loop LOOP_PINTA_TELA_FIM_JOGO
 
     mov DH, 10
     mov BL, 0FH ; Texto branco
-    mov SI, offset VOCE_PERDEU
     call ESCREVE_STRING
 
     mov ah,01h
@@ -739,6 +760,32 @@ TELA_DERROTA proc
     pop AX
     pop DI
     pop CX
+    ret
+endp
+
+TELA_VITORIA proc
+    push AX
+    push SI
+    
+    mov AL, 0EH ; amarelo
+    mov SI, offset PARABENS
+    call TELA_FINAL_JOGO
+
+    pop SI
+    pop AX
+    ret
+endp
+
+TELA_DERROTA proc
+    push AX
+    push SI
+    
+    mov AL, 4 ; vermelho
+    mov SI, offset VOCE_PERDEU
+    call TELA_FINAL_JOGO
+    
+    pop SI
+    pop AX
     ret
 endp
 
