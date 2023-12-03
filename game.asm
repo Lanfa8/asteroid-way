@@ -739,7 +739,7 @@ ATIVAR_VIDA proc
     call VERIFICA_COLISAO_10x10
 
     cmp DX, 1
-    jne FIM_ATIVA_VIDA
+    jne VERIFICA_COLISAO_VIDA_FIM_TELA
 
     mov AX, POSICAO_VIDA
     mov SI, offset QUADRADO_PRETO
@@ -747,6 +747,16 @@ ATIVAR_VIDA proc
 
     mov POSICAO_VIDA, 0
     mov NRO_VIDAS, 10 ;recupera todas as vidas
+    
+    jmp FIM_ATIVA_VIDA
+    VERIFICA_COLISAO_VIDA_FIM_TELA:
+        mov AX, POSICAO_VIDA
+        call VERIFICA_COLISAO_FINAL_TELA_ESQUERDA
+        cmp DX, 1
+        jne FIM_ATIVA_VIDA
+        mov SI, offset QUADRADO_PRETO
+        call DESENHA_ELEMENTO_10x10
+        mov POSICAO_VIDA, 0
 
     FIM_ATIVA_VIDA:
         pop SI
@@ -831,14 +841,25 @@ ATIVAR_ESCUDO proc
     call VERIFICA_COLISAO_10x10
 
     cmp DX, 1
-    jne FIM_ATIVA_ESCUDO
+    jne VERIFICA_COLISAO_ESCUDO_FIM_TELA
 
     mov AX, POSICAO_ESCUDO
     mov SI, offset QUADRADO_PRETO
     call DESENHA_ELEMENTO_10x10
 
     mov POSICAO_ESCUDO, 0
-    mov TEMPO_RESTANTE_ESCUDO, DURACAO_TOTAL_ESCUDO_CONST 
+    mov TEMPO_RESTANTE_ESCUDO, DURACAO_TOTAL_ESCUDO_CONST
+
+    jmp FIM_ATIVA_ESCUDO
+
+    VERIFICA_COLISAO_ESCUDO_FIM_TELA:
+        mov AX, POSICAO_ESCUDO
+        call VERIFICA_COLISAO_FINAL_TELA_ESQUERDA
+        cmp DX, 1
+        jne FIM_ATIVA_ESCUDO
+        mov SI, offset QUADRADO_PRETO
+        call DESENHA_ELEMENTO_10x10
+        mov POSICAO_ESCUDO, 0
 
     FIM_ATIVA_ESCUDO:
         pop SI
