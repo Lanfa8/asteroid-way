@@ -15,7 +15,11 @@ LOGO    db "            _                 _     _   "
         db "            \ V  V / (_| | |_| |        "
         db "             \_/\_/ \__,_|\__, |        "
         db "                           __/ |        "
-        db "                          |___/         ", '$'
+        db "                          |___/         ", "$"
+
+VOCE_PERDEU db "  \   /_  __ __    _  __ _  _  __    |  "
+            db "   \ // \/  |_    |_)|_ |_)| \|_ | | |  "
+            db "    V \_/\__|__   |  |__| \|_/|__|_| o  ", "$"
       
 TEXTO_JOGAR db "                  JOGAR                 ", "$"
 
@@ -50,7 +54,7 @@ ESCUDO db 0,0,0,0,2,2,0,0,0,0,0,0,0,0,2,2,0,0,0,0,0,0,0,0,2,2,0,0,0,0,0,0,0,0,2,
 QUADRADO_PRETO db 100 dup(0)
 
 ;controladores jogo
-NRO_VIDAS db 7
+NRO_VIDAS db 3
 RESTANTE_TEMPO dw 30  
 NIVEL db 1
 TEMPO_DECORRIDO dw 0
@@ -599,6 +603,12 @@ INICIAR_JOGO proc
     push CX
     push DI
     push SI
+    
+    mov NRO_VIDAS, 10
+    mov RESTANTE_TEMPO, 100
+    mov NIVEL, 1
+    mov TEMPO_DECORRIDO, 0
+
     call MODO_VIDEO
     call DESENHA_INTERFACE
 
@@ -607,11 +617,10 @@ INICIAR_JOGO proc
     
     xor BX, BX  
     LOOP_MAIN:
-        cmp NRO_VIDAS, 0
-        je FIM_JOGO
-
         call ATUALIZA_BARRA_VIDA
         call ATUALIZA_BARRA_TEMPO
+        cmp NRO_VIDAS, 0
+        je FIM_JOGO
         
         call LE_ENTRADA ; Verifica e processa a entrada do teclado
        
@@ -656,13 +665,59 @@ INICIAR_JOGO proc
         call GERA_VIDA
         call ATUALIZA_TEMPO_ESCUDO ;manter aqui, pois é baseado em segundos
         jmp LOOP_MAIN
-        
+    
     FIM_JOGO:
+        call TELA_DERROTA
         pop SI
         pop DI
         pop CX
         pop BX
         pop AX
+    ret
+endp
+
+TELA_DERROTA proc
+    push CX
+    push DI
+    push AX
+    push DX
+    push BX
+
+    xor AX, AX
+    mov CX, 57600 ;tela inteira, menos 20 linhas da interface
+    mov AL, 4 ; vermelho
+    mov DI, 0
+
+    LOOP_PINTA_TELA_DERROTA:
+        stosb
+        
+        push CX
+        push AX
+
+        mov AH, 86H
+        mov CX, 0
+    
+        mov DX, 0AH ; 10 em hexa
+        int 15H
+
+        pop AX
+        pop CX 
+        
+        loop LOOP_PINTA_TELA_DERROTA
+
+    mov DH, 10
+    mov BL, 0FH ; Texto branco
+    mov SI, offset VOCE_PERDEU
+    call ESCREVE_STRING
+
+    mov ah,01h
+    int 21h
+
+    pop BX
+    pop DX
+    pop AX
+    pop DI
+    pop CX
     ret
 endp
 
