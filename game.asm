@@ -512,7 +512,7 @@ GERA_ASTEROIDE proc
     
     GERA_ASTEROIDE_EFET:
         mov BX, SI ;salva posicao do asteroide
-        mov AX, 5760 ; 18 linhas X 320 px (18 linhas pois remove o espaço para a interface inferior)
+        mov AX, 5760 ; 18 linhas X 320 px (18 linhas pois remove o espa?o para a interface inferior)
         call RAND_NUMBER
         
         mul DX
@@ -604,7 +604,7 @@ LIMPA_COLUNA_PIXELS proc
     
     LOOP_LIMPA_COLUNA:
         stosb
-        add DI, 319 ; pula linha, DI já está +1
+        add DI, 319 ; pula linha, DI j? est? +1
         loop LOOP_LIMPA_COLUNA
     
     pop AX
@@ -685,7 +685,7 @@ INICIAR_JOGO proc
         call GERA_ASTEROIDE ;TODO: mover para lugar que controle corretamente o tempo
         call GERA_ESCUDO
         call GERA_VIDA
-        call ATUALIZA_TEMPO_ESCUDO ;manter aqui, pois é baseado em segundos
+        call ATUALIZA_TEMPO_ESCUDO ;manter aqui, pois ? baseado em segundos
         cmp RESTANTE_TEMPO, 0
         je PASSAR_NIVEL
 
@@ -1044,9 +1044,9 @@ ATUALIZA_COLISOES_ASTEROIDES proc
         je TERMINOU_TELA_ASTEROIDE
         pop AX ;restaura AX 1
 
-		call VERIFICA_COLISAO_PROJETIL_ASTEROIDES
-		cmp DX, 1
-		je FLAG_COTINUA_LOOP_PERCORRE_ASTEROIDES_COLISOES
+        call VERIFICA_COLISAO_PROJETIL_ASTEROIDES
+        cmp DX, 1
+        je FLAG_COTINUA_LOOP_PERCORRE_ASTEROIDES_COLISOES
 
         call VERIFICA_COLISAO_10x10
         cmp DX, 1
@@ -1088,40 +1088,40 @@ endp
 VERIFICA_COLISAO_PROJETIL_ASTEROIDES proc
     push AX
     push BX
-	push CX
+    push CX
     push DX
-	push DI
+    push DI
 
-	mov CX, MAX_PROJETEIS
+    mov CX, MAX_PROJETEIS
     mov DI, offset posicoes_projeteis
 
     LOOP_VERIFICA_PROJETEIS:
-        mov AX, [DI] ; Carrega a posição do projétil
-		mov BX, [SI] ; Carrega a posição do asteroide
+        mov AX, [DI] ; Carrega a posi??o do proj?til
+        mov BX, [SI] ; Carrega a posi??o do asteroide
         cmp AX, 0
-        je PROXIMO_PROJETIL_COLISAO ; Pula se o projétil não estiver ativo
+        je PROXIMO_PROJETIL_COLISAO ; Pula se o proj?til n?o estiver ativo
 
-		call VERIFICA_COLISAO_PIXEL_COM_10X10 ; Verifica colisão entre projétil (AX) e asteroide (BX)
-		cmp DX, 1
-		je COLIDIU_PROJETIL
+        call VERIFICA_COLISAO_PIXEL_COM_10X10 ; Verifica colis?o entre proj?til (AX) e asteroide (BX)
+        cmp DX, 1
+        je COLIDIU_PROJETIL
 
         jmp PROXIMO_PROJETIL_COLISAO
 
     COLIDIU_PROJETIL:
-		push DI
-        mov [DI], 0 ; Desativa o projétil]
-		mov DI, AX
-		mov AX, 0
-		stosw
-		pop DI
-        call LIMPA_ASTEROIDE ; Limpa a representação do asteroide na tela
+        push DI
+        mov [DI], 0 ; Desativa o proj?til]
+        mov DI, AX
+        mov AX, 0
+        stosw
+        pop DI
+        call LIMPA_ASTEROIDE ; Limpa a representa??o do asteroide na tela
     PROXIMO_PROJETIL_COLISAO:
-        add DI, 2 ; Avança para o próximo projétil
+        add DI, 2 ; Avan?a para o pr?ximo proj?til
         loop LOOP_VERIFICA_PROJETEIS
 
-	pop DI
+    pop DI
     pop DX
-	pop CX
+    pop CX
     pop BX
     pop AX
 ret
@@ -1135,46 +1135,46 @@ ATUALIZA_PROJETEIS proc
     push CX
     push SI
     push DX
-	push DI
+    push DI
 
     mov CX, MAX_PROJETEIS
     mov SI, offset posicoes_projeteis
 
     ATUALIZA_PROJETEIS_LOOP:
-        mov AX, [SI]          ; Carrega a posição linear do projétil
+        mov AX, [SI]          ; Carrega a posi??o linear do proj?til
         cmp AX, 0
         je PROXIMO_PROJETIL
 
         add AX, 1             ; Move 1 pixels para a direita
-        mov [SI], AX          ; Atualiza a posição do projétil
+        mov [SI], AX          ; Atualiza a posi??o do proj?til
 
-        ; Verifica se o projétil atingiu o final da linha
+        ; Verifica se o proj?til atingiu o final da linha
         ; Para isso, calculamos AX mod 320 e comparamos com 318 (320 - 2)
 
-		push CX
-		mov CX, 200
-		mov BX, 0
-		LOOP_VERIFICA_COLISAO_DIREITA_PROJETIL:
-			cmp BX, AX
-			je DESATIVA_PROJETIL
-			add BX, 320
-			loop LOOP_VERIFICA_COLISAO_DIREITA_PROJETIL
+        push CX
+        mov CX, 200
+        mov BX, 0
+        LOOP_VERIFICA_COLISAO_DIREITA_PROJETIL:
+            cmp BX, AX
+            je DESATIVA_PROJETIL
+            add BX, 320
+            loop LOOP_VERIFICA_COLISAO_DIREITA_PROJETIL
 
-	    pop cx
+        pop cx
         jmp PROXIMO_PROJETIL
 
         DESATIVA_PROJETIL:
-          mov [SI], 0         ; Desativa o projétil
+          mov [SI], 0         ; Desativa o proj?til
           mov DI, AX
           mov AX, 0
           stosw
-		  pop cx
+          pop cx
 
         PROXIMO_PROJETIL:
-          add SI, 2            ; Avança para o próximo projétil
+          add SI, 2            ; Avan?a para o pr?ximo proj?til
           loop ATUALIZA_PROJETEIS_LOOP
 
-	pop DI
+    pop DI
     pop DX
     pop SI
     pop CX
@@ -1188,7 +1188,7 @@ LIMPA_PROJETEIS proc
     push BX
     push CX
     push DI
-	push DX
+    push DX
 
     mov CX, MAX_PROJETEIS
     mov DI, offset posicoes_projeteis
@@ -1198,18 +1198,18 @@ LIMPA_PROJETEIS proc
         cmp AX, 0
         je PROXIMO_PROJETIL_LIMPA
 
-        ; Aqui você pode chamar DESENHA_PIXELS ou uma função semelhante
-        ; para limpar (pintar com a cor de fundo) a posição do projétil
-        ; Por exemplo, se a cor de fundo for preta (0), você pode fazer:
+        ; Aqui voc? pode chamar DESENHA_PIXELS ou uma fun??o semelhante
+        ; para limpar (pintar com a cor de fundo) a posi??o do proj?til
+        ; Por exemplo, se a cor de fundo for preta (0), voc? pode fazer:
         mov BX, 0 ; Cor preta
-        mov DX, 1 ; Tamanho do projétil
+        mov DX, 1 ; Tamanho do proj?til
         call DESENHA_PIXELS
 
     PROXIMO_PROJETIL_LIMPA:
-        add DI, 2 ; Avança para o próximo projétil
+        add DI, 2 ; Avan?a para o pr?ximo proj?til
     loop LIMPA_LOOP
 
-	pop DX
+    pop DX
     pop DI
     pop CX
     pop BX
@@ -1223,25 +1223,25 @@ DESENHA_PROJETEIS proc
     push CX
     push SI
     push DI
-	push DX
+    push DX
 
-    mov CX, MAX_PROJETEIS        ; Número máximo de projéteis
+    mov CX, MAX_PROJETEIS        ; N?mero m?ximo de proj?teis
     mov SI, offset posicoes_projeteis
     mov BX, 0FH                  ; Cor branca (branco)
 
     LOOP_DESENHA_PROJETIL:
-        lodsw                     ; Carrega a posição do próximo projétil
-        or AX, AX                 ; Verifica se a posição é ativa (não zero)
-        jz CONTINUA               ; Se zero, pula para o próximo projétil
+        lodsw                     ; Carrega a posi??o do pr?ximo proj?til
+        or AX, AX                 ; Verifica se a posi??o ? ativa (n?o zero)
+        jz CONTINUA               ; Se zero, pula para o pr?ximo proj?til
 
-        mov DI, AX                ; DI recebe a posição do projétil
+        mov DI, AX                ; DI recebe a posi??o do proj?til
         mov DX, 1                 ; Quantidade de pixels a desenhar (1 pixel)
-        call DESENHA_PIXELS       ; Desenha o projétil
+        call DESENHA_PIXELS       ; Desenha o proj?til
 
         CONTINUA:
         loop LOOP_DESENHA_PROJETIL
 
-	pop DX
+    pop DX
     pop DI
     pop SI
     pop CX
@@ -1254,13 +1254,13 @@ LIMPA_BUFFER_TECLADO proc
     push AX
 
     LOOP_LIMPA_BUFFER:
-        mov AH, 1      ; Verifica se há uma tecla pressionada
+        mov AH, 1      ; Verifica se h? uma tecla pressionada
         int 16h
-        jz FIM_LIMPA   ; Se não, saia do loop
+        jz FIM_LIMPA   ; Se n?o, saia do loop
 
-        mov AH, 0      ; Lê a tecla pressionada para limpá-la do buffer
+        mov AH, 0      ; L? a tecla pressionada para limp?-la do buffer
         int 16h
-        jmp LOOP_LIMPA_BUFFER ; Repete até que o buffer esteja vazio
+        jmp LOOP_LIMPA_BUFFER ; Repete at? que o buffer esteja vazio
 
     FIM_LIMPA:
     pop AX
@@ -1268,7 +1268,6 @@ LIMPA_BUFFER_TECLADO proc
 LIMPA_BUFFER_TECLADO endp
 
 LE_ENTRADA proc
-
     push AX
     push BX
     push CX
@@ -1287,19 +1286,19 @@ LE_ENTRADA proc
 
     mov AH, 0
     int 16h
-
     cmp AH, 48h ; Tecla seta para cima
     je MOVE_CIMA
     cmp AH, 50h ; Tecla seta para baixo
     je MOVE_BAIXO
-    
-
     cmp AH, 39h ; Tecla Espa?o
-    je ATIRA
+    call ATIRA
 
     jmp FIM_LE_ENTRADA
 
 MOVE_CIMA:
+    cmp POSICAO_Y_NAVE,0 
+    jle FIM_LE_ENTRADA
+ 
     dec POSICAO_Y_NAVE
     ; Calcula a posi??o da linha inferior da nave para limpar
     mov AX, POSICAO_Y_NAVE
@@ -1312,7 +1311,10 @@ MOVE_CIMA:
     jmp FIM_LE_ENTRADA
 
 MOVE_BAIXO:
-   inc POSICAO_Y_NAVE
+    cmp POSICAO_Y_NAVE,170 
+    jae FIM_LE_ENTRADA
+    
+    inc POSICAO_Y_NAVE
     ; Calcula a posi??o da linha superior da nave para limpar
     mov AX, POSICAO_Y_NAVE
     dec AX ; Move uma linha acima da posi??o atual
@@ -1323,37 +1325,10 @@ MOVE_BAIXO:
     call LIMPA_LINHA
     jmp FIM_LE_ENTRADA
     
-ATIRA:
-    mov CX, MAX_PROJETEIS
-    mov SI, offset posicoes_projeteis
 
-    PROCURA_PROJETIL:
-        mov AX, [SI]
-        cmp AX, 0
-        je ATIVA_PROJETIL
-        add SI, 2
-        loop PROCURA_PROJETIL
-
-    jmp FIM_LE_ENTRADA
-
-ATIVA_PROJETIL:
-	push AX
-	push BX
-
-    ; Configura a posição inicial do projétil
-    mov AX, POSICAO_Y_NAVE
-    mov BX, 320            ; Largura da tela
-    mul BX                 ; AX = POSICAO_Y_NAVE * 320
-    add AX, POSICAO_X_NAVE ; AX = AX + POSICAO_X_NAVE
-    add AX, 1610 ; (320 * 5 (metade da nave)) + 10
-    mov [SI], AX           ; Armazena a posição linear absoluta no array projeteis
-
-	pop BX
-	pop AX
-    jmp FIM_LE_ENTRADA
     
 FIM_LE_ENTRADA:
-	call LIMPA_BUFFER_TECLADO 
+    call LIMPA_BUFFER_TECLADO 
     pop SI
     pop DI
     pop DX
@@ -1364,6 +1339,47 @@ FIM_LE_ENTRADA:
 LE_ENTRADA endp
 
 
+ATIRA proc
+    push AX
+    push BX
+    push CX
+    push SI
+  
+    mov CX, MAX_PROJETEIS
+    mov SI, offset posicoes_projeteis
+
+    PROCURA_PROJETIL:
+        mov AX, [SI]
+        cmp AX, 0
+        je ATIVA_PROJETIL
+        add SI, 2
+        loop PROCURA_PROJETIL
+
+        jmp FIM_ATIRA
+
+    ATIVA_PROJETIL:
+        push AX
+        push BX
+
+        ; Configura a posi??o inicial do proj?til
+        mov AX, POSICAO_Y_NAVE
+        mov BX, 320            ; Largura da tela
+        mul BX                 ; AX = POSICAO_Y_NAVE * 320
+        add AX, POSICAO_X_NAVE; AX = AX + POSICAO_X_NAVE
+        add AX, 1610 ; (320 * 5 (metade da nave)) + 10
+        mov [SI], AX           ; Armazena a posi??o linear absoluta no array projeteis
+
+        pop BX
+        pop AX
+        jmp FIM_ATIRA
+      
+   FIM_ATIRA:
+       pop SI
+       pop CX
+       pop BX
+       pop AX
+       ret
+endp
 
 LIMPAR_TELA proc
     push AX
@@ -1556,7 +1572,7 @@ VERIFICA_COLISAO_PIXEL_COM_10X10 proc
         loop LOOP_VERIFICA_COLISAO_ESQUERDA
     pop BX
 
-    ;acho que podemos remover, não temos caso de colisão na borda direita
+    ;acho que podemos remover, n?o temos caso de colis?o na borda direita
     ; verifica os 8 pixels restantes da borda direita
     push BX
     add BX, 19
