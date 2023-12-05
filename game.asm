@@ -1112,7 +1112,7 @@ VERIFICA_COLISAO_PROJETIL_ASTEROIDES proc
         cmp AX, 0
         je PROXIMO_PROJETIL_COLISAO ; Pula se o proj?til n?o estiver ativo
 
-        call VERIFICA_COLISAO_PIXEL_COM_10X10 ; Verifica colis?o entre proj?til (AX) e asteroide (BX)
+        call VERIFICA_COLISAO_PIXEL_COM_10x10 ; Verifica colis?o entre proj?til (AX) e asteroide (BX)
         cmp DX, 1
         je COLIDIU_PROJETIL
 
@@ -1474,7 +1474,7 @@ VERIFICA_COLISAO_10x10 proc
     push AX
     mov CX, 10
     LOOP_VERIFICA_COLISAO_10x10_SUPERIOR:
-        call VERIFICA_COLISAO_PIXEL_COM_10X10
+        call VERIFICA_COLISAO_PIXEL_COM_10x10
         cmp DX, 1
         je COLIDIU_10x10
         
@@ -1487,7 +1487,7 @@ VERIFICA_COLISAO_10x10 proc
     add AX, 2880 ;pula 9 linhas (320px) * 9
     mov CX, 10
     LOOP_VERIFICA_COLISAO_10x10_INFERIOR:
-        call VERIFICA_COLISAO_PIXEL_COM_10X10
+        call VERIFICA_COLISAO_PIXEL_COM_10x10
         cmp DX, 1
         je COLIDIU_10x10
 
@@ -1500,7 +1500,7 @@ VERIFICA_COLISAO_10x10 proc
     add AX, 320 ;pula 1 linha (320px)
     mov CX, 8
     LOOP_VERIFICA_COLISAO_10x10_ESQUERDA:
-        call VERIFICA_COLISAO_PIXEL_COM_10X10
+        call VERIFICA_COLISAO_PIXEL_COM_10x10
         cmp DX, 1
         je COLIDIU_10x10
 
@@ -1513,7 +1513,7 @@ VERIFICA_COLISAO_10x10 proc
     add AX, 329 ;pula 1 linha (320px) + 9 pixels
     mov CX, 8
     LOOP_VERIFICA_COLISAO_10x10_DIREITA:
-        call VERIFICA_COLISAO_PIXEL_COM_10X10
+        call VERIFICA_COLISAO_PIXEL_COM_10x10
         cmp DX, 1
         je COLIDIU_10x10
 
@@ -1534,7 +1534,7 @@ endp
 ;bx = coordenada inicial elemento 10x10
 ;ax = coordenada pixel
 ;dx = retorna 1 se colidiu
-VERIFICA_COLISAO_PIXEL_COM_10X10 proc
+VERIFICA_COLISAO_PIXEL_COM_10x10 proc
     push CX
     push BX
     xor DX, DX
@@ -1557,13 +1557,13 @@ VERIFICA_COLISAO_PIXEL_COM_10X10 proc
             jl FIM_VERIFICA_COLISAO_PIXEL_COM_10x10
             loop LOOP_VERIFICA_COLISAO_PIXEL_COM_10x10
 
-    jmp FIM_VERIFICA_COLISAO_PIXEL_COM_10X10        
+    jmp FIM_VERIFICA_COLISAO_PIXEL_COM_10x10        
 
     COLIDIU:
         mov DX, 1
-        jmp FIM_VERIFICA_COLISAO_PIXEL_COM_10X10
+        jmp FIM_VERIFICA_COLISAO_PIXEL_COM_10x10
 
-    FIM_VERIFICA_COLISAO_PIXEL_COM_10X10:
+    FIM_VERIFICA_COLISAO_PIXEL_COM_10x10:
         pop BX
         pop CX
     ret
