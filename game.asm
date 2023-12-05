@@ -2,6 +2,9 @@
 
 .stack 1000H
 
+;todo: ajustar tiros teleportando
+;todo: ajustar vidas nascendo simultaneas
+;todo: ajustar asteroide colisao na esquerda altas velocidades
 .data
 LARGURA_TELA equ 320
 
@@ -79,7 +82,7 @@ DURACAO_TOTAL_ESCUDO_CONST EQU 5 ; 5 segundos
 CHANCE_APARECER_ESCUDO EQU 1 ; de 0 a 9 -> sendo 0 10% e 9 100%
 CHANCE_APARECER_VIDA EQU 5 ; de 9 a 0 -> sendo 0 100% e 9 10%
 MAX_NIVEIS EQU 5
-TEMPO_POR_NIVEL EQU 15 ; em segundos -> max 100 segundos
+TEMPO_POR_NIVEL EQU 30 ; em segundos -> max 100 segundos
 
 ; Cada proj?til consiste em 2 palavras (para posX e posY) e 1 byte (para ativo)
 posicoes_projeteis DW 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
@@ -1153,22 +1156,23 @@ ATUALIZA_PROJETEIS proc
         cmp AX, 0
         je PROXIMO_PROJETIL
 
-        add AX, 1             ; Move 1 pixels para a direita
+        add AL, NIVEL         ; Move 2x a velocidade dos asteroides         
+        add AL, NIVEL
+
         mov [SI], AX          ; Atualiza a posi??o do proj?til
 
         ; Verifica se o proj?til atingiu o final da linha
         ; Para isso, calculamos AX mod 320 e comparamos com 318 (320 - 2)
 
-        push CX
-        mov CX, 200
-        mov BX, 0
-        LOOP_VERIFICA_COLISAO_DIREITA_PROJETIL:
-            cmp BX, AX
-            je DESATIVA_PROJETIL
-            add BX, 320
-            loop LOOP_VERIFICA_COLISAO_DIREITA_PROJETIL
+        mov BX, 320
+        push AX
+        push DX
+        div BX
+        cmp DX, 100
+        pop DX
+        pop AX 
+        jl DESATIVA_PROJETIL
 
-        pop cx
         jmp PROXIMO_PROJETIL
 
         DESATIVA_PROJETIL:
@@ -1176,7 +1180,6 @@ ATUALIZA_PROJETEIS proc
           mov DI, AX
           mov AX, 0
           stosw
-          pop cx
 
         PROXIMO_PROJETIL:
           add SI, 2            ; Avan?a para o pr?ximo proj?til
