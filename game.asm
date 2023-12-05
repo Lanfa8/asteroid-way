@@ -78,15 +78,15 @@ MAX_PROJETEIS EQU 10
 DURACAO_TOTAL_ESCUDO_CONST EQU 5 ; 5 segundos
 CHANCE_APARECER_ESCUDO EQU 1 ; de 0 a 9 -> sendo 0 10% e 9 100%
 CHANCE_APARECER_VIDA EQU 5 ; de 9 a 0 -> sendo 0 100% e 9 10%
-MAX_NIVEIS EQU 1
-TEMPO_POR_NIVEL EQU 30 ; em segundos -> max 100 segundos
+MAX_NIVEIS EQU 5
+TEMPO_POR_NIVEL EQU 15 ; em segundos -> max 100 segundos
 
 ; Cada proj?til consiste em 2 palavras (para posX e posY) e 1 byte (para ativo)
 posicoes_projeteis DW 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 
 POSICAO_ESCUDO dw 0
-ESCUDO_DEPLOYED db 0
 TEMPO_RESTANTE_ESCUDO db 0
+TEMPO_NOVO_ESCUDO db 1
 
 POSICAO_VIDA dw 0
 VIDA_DEPLOYED db 0
@@ -630,7 +630,7 @@ INICIAR_JOGO proc
     mov AX, 0
     rep stosw
     mov POSICAO_ESCUDO, 0
-    mov ESCUDO_DEPLOYED, 0
+    mov TEMPO_NOVO_ESCUDO, 0
     mov TEMPO_RESTANTE_ESCUDO, 0
     mov POSICAO_VIDA, 0
     mov VIDA_DEPLOYED, 0
@@ -682,7 +682,7 @@ INICIAR_JOGO proc
     ATUALIZA_TEMPO_RESTANTE:
         dec RESTANTE_TEMPO
         xor BX, BX
-        call GERA_ASTEROIDE ;TODO: mover para lugar que controle corretamente o tempo
+        call GERA_ASTEROIDE
         call GERA_ESCUDO
         call GERA_VIDA
         call ATUALIZA_TEMPO_ESCUDO ;manter aqui, pois ? baseado em segundos
@@ -698,7 +698,6 @@ INICIAR_JOGO proc
         ja FIM_JOGO_VITORIA
 
         mov RESTANTE_TEMPO, TEMPO_POR_NIVEL
-        mov ESCUDO_DEPLOYED, 0
         mov VIDA_DEPLOYED, 0
         jmp FLAG_RETORNA_ATUALIZA_TEMPO_RESTANTE
     
@@ -915,6 +914,7 @@ ATIVAR_ESCUDO proc
     call DESENHA_ELEMENTO_10x10
 
     mov POSICAO_ESCUDO, 0
+    mov TEMPO_NOVO_ESCUDO, 10
     mov TEMPO_RESTANTE_ESCUDO, DURACAO_TOTAL_ESCUDO_CONST
 
     jmp FIM_ATIVA_ESCUDO
@@ -927,6 +927,7 @@ ATIVAR_ESCUDO proc
         mov SI, offset QUADRADO_PRETO
         call DESENHA_ELEMENTO_10x10
         mov POSICAO_ESCUDO, 0
+        mov TEMPO_NOVO_ESCUDO, 10
 
     FIM_ATIVA_ESCUDO:
         pop SI
@@ -938,6 +939,11 @@ ATIVAR_ESCUDO proc
 endp
 
 ATUALIZA_TEMPO_ESCUDO proc
+    cmp NIVEL, 1
+    je FIM_ATUALIZA_TEMPO_ESCUDO
+
+    dec TEMPO_NOVO_ESCUDO
+
     cmp TEMPO_RESTANTE_ESCUDO, 0
     je FIM_ATUALIZA_TEMPO_ESCUDO
 
@@ -976,15 +982,17 @@ GERA_ESCUDO proc
     push DX
     push AX
     push SI
-
-    cmp ESCUDO_DEPLOYED, 1
+    
+    cmp NIVEL, 1
     je FIM_GERA_ESCUDO
+    
+    cmp TEMPO_NOVO_ESCUDO, 0
+    ja FIM_GERA_ESCUDO
+    
+    cmp POSICAO_ESCUDO, 0
+    ja FIM_GERA_ESCUDO
 
-    call RAND_NUMBER
-    cmp DL, CHANCE_APARECER_ESCUDO
-    jae FIM_GERA_ESCUDO
-
-    inc ESCUDO_DEPLOYED
+    mov TEMPO_NOVO_ESCUDO, 10
 
     mov AX, 31980 ;centro da tela
     mov POSICAO_ESCUDO, AX
@@ -1528,66 +1536,27 @@ VERIFICA_COLISAO_PIXEL_COM_10X10 proc
     push BX
     xor DX, DX
     
-    ; verifica os 10 pixels da borda superior
-    push BX
-    cmp AX, BX
-    jae FLAG_VERIFICA_COLISAO_SUPERIOR 
-    jmp FLAG_NAO_COLIDIU_SUPERIOR
-
-    FLAG_VERIFICA_COLISAO_SUPERIOR:
-    add BX, 10
-    cmp AX, BX
-    ja FLAG_NAO_COLIDIU_SUPERIOR 
-
-    jmp COLIDIU
-
-    FLAG_NAO_COLIDIU_SUPERIOR:
-    pop BX
-
-
-    push BX
-    add BX, 2880 ;pula 9 linhas (320px) * 9 
-    cmp AX, BX
-    jae FLAG_VERIFICA_COLISAO_INFERIOR 
-    jmp FLAG_NAO_COLIDIU_INFERIOR
-
-    FLAG_VERIFICA_COLISAO_INFERIOR:
-    add BX, 10
-    cmp AX, BX
-    ja FLAG_NAO_COLIDIU_INFERIOR 
-
-    jmp COLIDIU
-
-    FLAG_NAO_COLIDIU_INFERIOR:
-    pop BX
-
-    ; verifica os 8 pixels restantes da borda esquerda
-    push BX
-    add BX, 10
-    mov CX, 8
-    LOOP_VERIFICA_COLISAO_ESQUERDA:
+    mov CX, 10
+    LOOP_VERIFICA_COLISAO_PIXEL_COM_10x10:
         cmp AX, BX
-        je COLIDIU
-        add BX, 320
-        loop LOOP_VERIFICA_COLISAO_ESQUERDA
-    pop BX
-
-    ;acho que podemos remover, n?o temos caso de colis?o na borda direita
-    ; verifica os 8 pixels restantes da borda direita
-    push BX
-    add BX, 19
-    mov CX, 8
-    LOOP_VERIFICA_COLISAO_DIREITA:
+        jae FLAG_VERIFICA_COLISAO_ENTRE        
+        jmp FLAG_NAO_COLIDIU
+        
+        FLAG_VERIFICA_COLISAO_ENTRE:
+        add BX, 10
         cmp AX, BX
-        je COLIDIU
-        add BX, 320
-        loop LOOP_VERIFICA_COLISAO_DIREITA
-    pop BX
-    
-    jmp FIM_VERIFICA_COLISAO_PIXEL_COM_10X10
+        ja FLAG_NAO_COLIDIU
+        jmp COLIDIU
+
+        FLAG_NAO_COLIDIU:
+            add BX, 310 ;linha seguinte
+            cmp AX, BX
+            jl FIM_VERIFICA_COLISAO_PIXEL_COM_10x10
+            loop LOOP_VERIFICA_COLISAO_PIXEL_COM_10x10
+
+    jmp FIM_VERIFICA_COLISAO_PIXEL_COM_10X10        
 
     COLIDIU:
-        pop BX ;restaura
         mov DX, 1
         jmp FIM_VERIFICA_COLISAO_PIXEL_COM_10X10
 
