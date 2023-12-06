@@ -42,6 +42,7 @@ SETA_CIMA     EQU 72
 SETA_BAIXO    EQU 80
 SETA_ESQUERDA EQU 75
 SETA_DIREITA  EQU 77
+TECLA_ESPACO  EQU 39
 BOTAO_ENTER   EQU 28
 
 POSICAO_X_NAVE dw 160 ; Posi??o inicial X da nave
@@ -1297,11 +1298,11 @@ LE_ENTRADA proc
 
     mov AH, 0
     int 16h
-    cmp AH, 48h ; Tecla seta para cima
+    cmp AH, SETA_CIMA ; Tecla seta para cima
     je MOVE_CIMA
-    cmp AH, 50h ; Tecla seta para baixo
+    cmp AH, SETA_BAIXO ; Tecla seta para baixo
     je MOVE_BAIXO
-    cmp AH, 39h ; Tecla Espa?o
+    cmp AH, TECLA_ESPACO ; Tecla Espa?o
     call ATIRA
 
     jmp FIM_LE_ENTRADA
