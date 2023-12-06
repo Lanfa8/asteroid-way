@@ -2,9 +2,6 @@
 
 .stack 1000H
 
-;todo: ajustar tiros teleportando
-;todo: ajustar vidas nascendo simultaneas
-;todo: ajustar asteroide colisao na esquerda altas velocidades
 .data
 LARGURA_TELA equ 320
 
@@ -64,9 +61,7 @@ QUADRADO_PRETO db 100 dup(0)
 ;controladores jogo
 NRO_VIDAS db 3
 RESTANTE_TEMPO dw 30  
-NIVEL db 1
-TEMPO_DECORRIDO dw 0
-
+NIVEL dw 1
 
 ; 50.000 ms
 TEMPO_CX dw 0
@@ -83,9 +78,8 @@ DURACAO_TOTAL_ESCUDO_CONST EQU 5 ; 5 segundos
 CHANCE_APARECER_ESCUDO EQU 1 ; de 0 a 9 -> sendo 0 10% e 9 100%
 CHANCE_APARECER_VIDA EQU 5 ; de 9 a 0 -> sendo 0 100% e 9 10%
 MAX_NIVEIS EQU 5
-TEMPO_POR_NIVEL EQU 30 ; em segundos -> max 100 segundos
+TEMPO_POR_NIVEL EQU 15 ; em segundos -> max 100 segundos
 
-; Cada proj?til consiste em 2 palavras (para posX e posY) e 1 byte (para ativo)
 posicoes_projeteis DW 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 
 POSICAO_ESCUDO dw 0
@@ -429,7 +423,6 @@ ATUALIZAR_BARRA_STATUS proc
         add AX, LARGURA_TELA
         loop LOOP_LINHAS_STATUS
         
-    ;restaura AX com a coordenada inicial que est? na pilha
     pop AX
     push AX
     
@@ -560,8 +553,8 @@ MOVE_ASTEROIDES proc
     MOVE_ASTEROIDE_UNICO:
         push CX
         push AX
-        xor CX, CX
-        mov CL, NIVEL ;controla a velocidade
+
+        mov CX, NIVEL ;controla a velocidade
         LOOP_MOVE_ASTEROIDE_UNICO:
             mov AX, [SI]
             add AX, 9 ;aponta para a ultima coluna atual
@@ -628,9 +621,8 @@ INICIAR_JOGO proc
     mov NRO_VIDAS, 10
     mov RESTANTE_TEMPO, TEMPO_POR_NIVEL
     mov NIVEL, 1
-    mov TEMPO_DECORRIDO, 0
     mov CX, TOTAL_ASTEROIDES_SIMULTANEOS
-    mov SI, offset POSICOES_ASTEROIDES
+    mov DI, offset POSICOES_ASTEROIDES
     mov AX, 0
     rep stosw
     mov POSICAO_ESCUDO, 0
@@ -652,17 +644,15 @@ INICIAR_JOGO proc
         call LE_ENTRADA ; Verifica e processa a entrada do teclado
        
         ; Calcula a posi??o inicial da nave em pixels
-        ; Cada linha tem 320 pixels, ent?o multiplique a coordenada Y por 320 e some com a coordenada X
         mov AX, POSICAO_Y_NAVE
         mov CX, LARGURA_TELA
         mul CX
         add AX, POSICAO_X_NAVE
-        mov DI, AX          ; Armazena a posi??o calculada em DI
+        mov DI, AX
 
         mov SI, offset NAVE
 
-        ; Agora, DI tem a posi??o correta para desenhar a nave
-        call DESENHA_ELEMENTO_10x10 ; Desenha a nave na posi??o atualizada
+        call DESENHA_ELEMENTO_10x10
         
         call LIMPA_PROJETEIS
         call ATUALIZA_PROJETEIS
@@ -680,7 +670,7 @@ INICIAR_JOGO proc
         call MOVE_ASTEROIDES
         call MOVE_ESCUDO
         call MOVE_VIDA
-        jmp LOOP_MAIN         ; Repete o loop
+        jmp LOOP_MAIN
         
         
     ATUALIZA_TEMPO_RESTANTE:
@@ -689,7 +679,7 @@ INICIAR_JOGO proc
         call GERA_ASTEROIDE
         call GERA_ESCUDO
         call GERA_VIDA
-        call ATUALIZA_TEMPO_ESCUDO ;manter aqui, pois ? baseado em segundos
+        call ATUALIZA_TEMPO_ESCUDO
         cmp RESTANTE_TEMPO, 0
         je PASSAR_NIVEL
 
@@ -846,6 +836,9 @@ GERA_VIDA proc
     
     cmp NRO_VIDAS, 5 ;somente abaixo de 50% da vida
     jae FIM_GERA_VIDA
+    
+    cmp POSICAO_VIDA, 0
+    ja FIM_GERA_VIDA
 
     call RAND_NUMBER
     cmp DL, CHANCE_APARECER_VIDA
@@ -1126,9 +1119,9 @@ VERIFICA_COLISAO_PROJETIL_ASTEROIDES proc
         mov AX, 0
         stosw
         pop DI
-        call LIMPA_ASTEROIDE ; Limpa a representa??o do asteroide na tela
+        call LIMPA_ASTEROIDE
     PROXIMO_PROJETIL_COLISAO:
-        add DI, 2 ; Avan?a para o pr?ximo proj?til
+        add DI, 2
         loop LOOP_VERIFICA_PROJETEIS
 
     pop DI
@@ -1153,18 +1146,16 @@ ATUALIZA_PROJETEIS proc
     mov SI, offset posicoes_projeteis
 
     ATUALIZA_PROJETEIS_LOOP:
-        mov AX, [SI]          ; Carrega a posi??o linear do proj?til
+        mov AX, [SI]
         cmp AX, 0
         je PROXIMO_PROJETIL
 
-        add AL, NIVEL         ; Move 2x a velocidade dos asteroides         
-        add AL, NIVEL
+        add AX, NIVEL         ; Move 2x a velocidade dos asteroides         
+        add AX, NIVEL
 
         mov [SI], AX          ; Atualiza a posi??o do proj?til
 
         ; Verifica se o proj?til atingiu o final da linha
-        ; Para isso, calculamos AX mod 320 e comparamos com 318 (320 - 2)
-
         mov BX, 320
         push AX
         push DX
@@ -1183,7 +1174,7 @@ ATUALIZA_PROJETEIS proc
           stosw
 
         PROXIMO_PROJETIL:
-          add SI, 2            ; Avan?a para o pr?ximo proj?til
+          add SI, 2 
           loop ATUALIZA_PROJETEIS_LOOP
 
     pop DI
@@ -1210,15 +1201,12 @@ LIMPA_PROJETEIS proc
         cmp AX, 0
         je PROXIMO_PROJETIL_LIMPA
 
-        ; Aqui voc? pode chamar DESENHA_PIXELS ou uma fun??o semelhante
-        ; para limpar (pintar com a cor de fundo) a posi??o do proj?til
-        ; Por exemplo, se a cor de fundo for preta (0), voc? pode fazer:
         mov BX, 0 ; Cor preta
         mov DX, 1 ; Tamanho do proj?til
         call DESENHA_PIXELS
 
     PROXIMO_PROJETIL_LIMPA:
-        add DI, 2 ; Avan?a para o pr?ximo proj?til
+        add DI, 2
     loop LIMPA_LOOP
 
     pop DX
@@ -1237,18 +1225,18 @@ DESENHA_PROJETEIS proc
     push DI
     push DX
 
-    mov CX, MAX_PROJETEIS        ; N?mero m?ximo de proj?teis
+    mov CX, MAX_PROJETEIS
     mov SI, offset posicoes_projeteis
     mov BX, 0FH                  ; Cor branca (branco)
 
     LOOP_DESENHA_PROJETIL:
-        lodsw                     ; Carrega a posi??o do pr?ximo proj?til
-        or AX, AX                 ; Verifica se a posi??o ? ativa (n?o zero)
-        jz CONTINUA               ; Se zero, pula para o pr?ximo proj?til
+        lodsw                     
+        or AX, AX                 
+        jz CONTINUA               
 
-        mov DI, AX                ; DI recebe a posi??o do proj?til
-        mov DX, 1                 ; Quantidade de pixels a desenhar (1 pixel)
-        call DESENHA_PIXELS       ; Desenha o proj?til
+        mov DI, AX                
+        mov DX, 1                 
+        call DESENHA_PIXELS       
 
         CONTINUA:
         loop LOOP_DESENHA_PROJETIL
@@ -1266,13 +1254,13 @@ LIMPA_BUFFER_TECLADO proc
     push AX
 
     LOOP_LIMPA_BUFFER:
-        mov AH, 1      ; Verifica se h? uma tecla pressionada
+        mov AH, 1     
         int 16h
-        jz FIM_LIMPA   ; Se n?o, saia do loop
+        jz FIM_LIMPA   
 
-        mov AH, 0      ; L? a tecla pressionada para limp?-la do buffer
+        mov AH, 0      
         int 16h
-        jmp LOOP_LIMPA_BUFFER ; Repete at? que o buffer esteja vazio
+        jmp LOOP_LIMPA_BUFFER 
 
     FIM_LIMPA:
     pop AX
@@ -1292,9 +1280,9 @@ LE_ENTRADA proc
     mov AX, POSICAO_Y_NAVE
     mov POSICAO_Y_NAVE_ANTERIOR, AX
 
-    mov AH, 1 ; Verifica se h? uma tecla pressionada
+    mov AH, 1 
     int 16h
-    jz FIM_LE_ENTRADA ; Se nenhuma tecla foi pressionada, pula a atualiza??o
+    jz FIM_LE_ENTRADA 
 
     mov AH, 0
     int 16h
@@ -1423,9 +1411,9 @@ LIMPA_LINHA proc
     push DI
 
     mov CX, 10 ; Largura da nave
-    xor AX, AX ; Cor preta para limpar (ajuste conforme necess?rio)
+    xor AX, AX ; Cor preta para limpar
 
-    REP STOSB  ; Preenche a linha com preto
+    REP STOSB
 
     pop DI
     pop CX
@@ -1438,15 +1426,22 @@ LIMPA_LINHA endp
 VERIFICA_COLISAO_FINAL_TELA_ESQUERDA proc
     push BX
     push CX
+    push AX
 
     xor DX, DX
-    mov BX, 0
-    mov CX, 200 ;200pixel altura
+    mov BX, 320
+    
+    mov CX, 10
     LOOP_VERIFICA_COLISAO_FINAL_TELA_ESQUERDA:
-        cmp AX, BX
-        je COLIDIU_FINAL_TELA_ESQUERDA
-        add BX, 320 ;pula linha (320px)
+        push AX
+        push DX
+        div BX
+        cmp DX, 0
+        pop DX
+        pop AX
+        je COLIDIU_FINAL_TELA_ESQUERDA 
 
+        inc AX
         loop LOOP_VERIFICA_COLISAO_FINAL_TELA_ESQUERDA
     
     jmp FIM_VERIFICA_COLISAO_FINAL_TELA_ESQUERDA
@@ -1456,6 +1451,7 @@ VERIFICA_COLISAO_FINAL_TELA_ESQUERDA proc
         jmp FIM_VERIFICA_COLISAO_FINAL_TELA_ESQUERDA
 
     FIM_VERIFICA_COLISAO_FINAL_TELA_ESQUERDA:
+        pop AX
         pop CX 
         pop BX
     ret
@@ -1612,13 +1608,13 @@ RAND_NUMBER proc
     push AX
     push CX
     
-    mov AH, 00h  ; interrupts to get system time        
-    int 1AH      ; CX:DX now hold number of clock ticks since midnight      
+    mov AH, 00h 
+    int 1AH    
 
     mov  ax, dx
     xor  dx, dx
     mov  cx, 10    
-    div  cx       ; here dx contains the remainder of the division - from 0 to 9
+    div  cx       ; dx terá o resto da divisao de 0 a 9
 
     pop CX 
     pop AX  
